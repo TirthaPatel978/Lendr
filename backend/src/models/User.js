@@ -27,19 +27,37 @@ const userSchema = new mongoose.Schema(
             default: ''
         },
 
+        location: {
+            type: {
+                type: String,
+                enum: ['Point'],
+                default: 'Point'
+            },
+            coordinates: {
+                type: [Number],
+                default: [0, 0]
+            }
+        },
+
         rating: {
             type: Number,
-            default: 0
+            default: 0,
+            min: 0,
+            max: 5
         },
 
         reliabilityScore: {
             type: Number,
-            default: 0
+            default: 0,
+            min: 0,
+            max: 100
         }
     },
     {
         timestamps: true
     }
 );
+
+userSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('User', userSchema);
