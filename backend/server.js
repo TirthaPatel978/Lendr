@@ -8,6 +8,9 @@ const userRoutes = require('./src/routes/userRoutes');
 const itemRoutes = require('./src/routes/itemRoutes');
 const borrowingRoutes = require('./src/routes/borrowingRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const checkBorrowingDeadlines = require('./src/utils/borrowingReminder');
+const reviewRoutes = require('./src/routes/reviewRoutes');
+const disputeRoutes = require('./src/routes/disputeRoutes');
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -21,6 +24,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/borrowings', borrowingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/disputes', disputeRoutes);
 // Test route
 app.get('/', (req, res) => {
     res.json({
@@ -31,6 +36,8 @@ app.get('/', (req, res) => {
 // Start server
 const startServer = async () => {
     await connectDB();
+
+    checkBorrowingDeadlines();
 
     app.listen(PORT, () => {
         console.log(`Lendr server running on http://localhost:${PORT}`);

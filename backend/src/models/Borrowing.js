@@ -55,12 +55,32 @@ const borrowingSchema = new mongoose.Schema(
                 'APPROVED',
                 'REJECTED',
                 'ACTIVE',
+                'OVERDUE',
                 'RETURNED',
                 'COMPLETED'
             ],
             default: 'REQUESTED'
         },
 
+        wasOverdue: {
+            type: Boolean,
+            default: false
+        },
+
+        reminders: {
+            dueTomorrow: {
+                type: Boolean,
+                default: false
+            },
+            dueToday: {
+                type: Boolean,
+                default: false
+            },
+            overdue: {
+                type: Boolean,
+                default: false
+            }
+        },
         returnedAt: {
             type: Date,
             default: null

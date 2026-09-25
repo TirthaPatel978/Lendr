@@ -23,6 +23,8 @@ const notificationSchema = new mongoose.Schema(
                 'PAYMENT_COMPLETED',
                 'ITEM_RETURNED',
                 'BORROWING_COMPLETED',
+                'DUE_TOMORROW',
+                'DUE_TODAY',
                 'OVERDUE'
             ],
             required: true

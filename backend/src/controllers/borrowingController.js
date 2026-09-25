@@ -405,12 +405,14 @@ const returnItem = async (req, res) => {
             });
         }
 
-        if (borrowing.status !== 'ACTIVE') {
+        if (
+            borrowing.status !== 'ACTIVE' &&
+            borrowing.status !== 'OVERDUE'
+        ) {
             return res.status(400).json({
-                message: 'Only active borrowings can be returned'
+                message: 'Only active or overdue borrowings can be returned'
             });
         }
-
         borrowing.status = 'RETURNED';
         borrowing.returnedAt = new Date();
 

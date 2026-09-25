@@ -1,5 +1,5 @@
 const Item = require('../models/Item');
-
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
 // Create a new item
 const createItem = async (req, res) => {
     try {
@@ -11,7 +11,8 @@ const createItem = async (req, res) => {
             rentalType,
             originalValue,
             rentalPricePerDay,
-            location
+            latitude,
+            longitude
         } = req.body;
 
         // Required fields
@@ -20,10 +21,30 @@ const createItem = async (req, res) => {
             !category ||
             !description ||
             !condition ||
-            !location
+            latitude === undefined ||
+            longitude === undefined
         ) {
             return res.status(400).json({
-                message: 'Name, category, description, condition and location are required'
+                message:
+                    'Name, category, description, condition, latitude and longitude are required'
+            });
+        }
+
+        // Convert coordinates to numbers
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+
+        // Validate coordinates
+        if (
+            Number.isNaN(lat) ||
+            Number.isNaN(lng) ||
+            lat < -90 ||
+            lat > 90 ||
+            lng < -180 ||
+            lng > 180
+        ) {
+            return res.status(400).json({
+                message: 'Latitude or longitude is invalid'
             });
         }
 
@@ -40,26 +61,56 @@ const createItem = async (req, res) => {
         // Paid items must have a rental price
         if (
             rentalType === 'PAID' &&
-            (!rentalPricePerDay || rentalPricePerDay <= 0)
+            (!rentalPricePerDay ||
+                Number(rentalPricePerDay) <= 0)
         ) {
             return res.status(400).json({
-                message: 'Paid items must have a rental price greater than 0'
+                message:
+                    'Paid items must have a rental price greater than 0'
             });
         }
 
+        // Upload photos to Cloudinary
+        let photoUrls = [];
+
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const result = await uploadToCloudinary(
+                    file.buffer,
+                    'lendr/items'
+                );
+
+                photoUrls.push(result.secure_url);
+            }
+        }
+
+        // Create item
         const item = await Item.create({
             owner: req.user,
+
             name,
             category,
             description,
             condition,
+
             rentalType: rentalType || 'FREE',
-            originalValue: originalValue || 0,
+
+            originalValue:
+                Number(originalValue) || 0,
+
             rentalPricePerDay:
                 rentalType === 'PAID'
-                    ? rentalPricePerDay
+                    ? Number(rentalPricePerDay)
                     : 0,
-            location
+
+            availability: true,
+
+            location: {
+                type: 'Point',
+                coordinates: [lng, lat]
+            },
+
+            photos: photoUrls
         });
 
         res.status(201).json({
