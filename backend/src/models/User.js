@@ -22,6 +22,17 @@ const userSchema = new mongoose.Schema(
             minlength: 6
         },
 
+        role: {
+            type: String,
+            enum: ['USER', 'ADMIN'],
+            default: 'USER'
+        },
+
+        isSuspended: {
+            type: Boolean,
+            default: false
+        },
+
         avatar: {
             type: String,
             default: ''
@@ -33,6 +44,7 @@ const userSchema = new mongoose.Schema(
                 enum: ['Point'],
                 default: 'Point'
             },
+
             coordinates: {
                 type: [Number],
                 default: [0, 0]

@@ -73,7 +73,29 @@ const itemSchema = new mongoose.Schema(
                 required: true
             }
         },
+        moderationStatus: {
+            type: String,
+            enum: ['ACTIVE', 'REMOVED'],
+            default: 'ACTIVE'
+        },
 
+        removalReason: {
+            type: String,
+            trim: true,
+            maxlength: 500,
+            default: ''
+        },
+
+        removedAt: {
+            type: Date,
+            default: null
+        },
+
+        removedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
         photos: [
             {
                 type: String

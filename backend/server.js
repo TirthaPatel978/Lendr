@@ -11,6 +11,8 @@ const notificationRoutes = require('./src/routes/notificationRoutes');
 const checkBorrowingDeadlines = require('./src/utils/borrowingReminder');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const disputeRoutes = require('./src/routes/disputeRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
+const statsRoutes = require('./src/routes/statsRoutes');
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -26,6 +28,8 @@ app.use('/api/borrowings', borrowingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/disputes', disputeRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/stats', statsRoutes);
 // Test route
 app.get('/', (req, res) => {
     res.json({

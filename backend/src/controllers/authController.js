@@ -2,15 +2,19 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const generateToken = (userId) => {
+const generateToken = (user) => {
     return jwt.sign(
-        { userId },
+        {
+            userId: user._id,
+            role: user.role
+        },
         process.env.JWT_SECRET,
-        { expiresIn: '7d' }
+        {
+            expiresIn: '7d'
+        }
     );
 };
 
-// Register
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -37,7 +41,7 @@ const registerUser = async (req, res) => {
             password: hashedPassword
         });
 
-        const token = generateToken(user._id);
+        const token = generateToken(user);
 
         res.status(201).json({
             message: 'User registered successfully',
@@ -45,7 +49,8 @@ const registerUser = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role
             }
         });
 
@@ -57,7 +62,7 @@ const registerUser = async (req, res) => {
     }
 };
 
-// Login
+
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -87,7 +92,13 @@ const loginUser = async (req, res) => {
             });
         }
 
-        const token = generateToken(user._id);
+        if (user.isSuspended) {
+            return res.status(403).json({
+                message: 'Your account has been suspended'
+            });
+        }
+
+        const token = generateToken(user);
 
         res.json({
             message: 'Login successful',
@@ -95,7 +106,8 @@ const loginUser = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role
             }
         });
 
@@ -106,7 +118,8 @@ const loginUser = async (req, res) => {
         });
     }
 };
-// Get current logged-in user
+
+
 const getMe = async (req, res) => {
     try {
         const user = await User.findById(req.user)
@@ -129,6 +142,8 @@ const getMe = async (req, res) => {
         });
     }
 };
+
+
 module.exports = {
     registerUser,
     loginUser,

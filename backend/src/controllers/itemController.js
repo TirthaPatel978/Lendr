@@ -318,13 +318,14 @@ const searchItems = async (req, res) => {
             radius
         } = req.query;
 
-        const query = {
-            availability: true
+        const filter = {
+            availability: true,
+            moderationStatus: 'ACTIVE'
         };
 
         // Search by name, category or description
         if (search) {
-            query.$or = [
+            filter.$or = [
                 { name: { $regex: search, $options: 'i' } },
                 { category: { $regex: search, $options: 'i' } },
                 { description: { $regex: search, $options: 'i' } }
@@ -333,29 +334,29 @@ const searchItems = async (req, res) => {
 
         // Category filter
         if (category) {
-            query.category = category;
+            filter.category = category;
         }
 
         // Free / Paid filter
         if (rentalType) {
-            query.rentalType = rentalType;
+            filter.rentalType = rentalType;
         }
 
         // Condition filter
         if (condition) {
-            query.condition = condition;
+            filter.condition = condition;
         }
 
         // Price filters
         if (minPrice !== undefined || maxPrice !== undefined) {
-            query.rentalPricePerDay = {};
+            filter.rentalPricePerDay = {};
 
             if (minPrice !== undefined) {
-                query.rentalPricePerDay.$gte = Number(minPrice);
+                filter.rentalPricePerDay.$gte = Number(minPrice);
             }
 
             if (maxPrice !== undefined) {
-                query.rentalPricePerDay.$lte = Number(maxPrice);
+                filter.rentalPricePerDay.$lte = Number(maxPrice);
             }
         }
 
@@ -387,7 +388,7 @@ const searchItems = async (req, res) => {
                 });
             }
 
-            query.location = {
+            filter.location = {
                 $near: {
                     $geometry: {
                         type: 'Point',
@@ -398,7 +399,7 @@ const searchItems = async (req, res) => {
             };
         }
 
-        const items = await Item.find(query)
+        const items = await Item.find(filter)
             .populate('owner', 'name rating reliabilityScore')
             .sort({ createdAt: -1 });
 
