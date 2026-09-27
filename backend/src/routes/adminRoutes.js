@@ -15,12 +15,11 @@ const {
 const protect = require('../middleware/authMiddleware');
 const adminOnly = require('../middleware/adminMiddleware');
 
+const {
+    validateObjectId
+} = require('../middleware/validationMiddleware');
+
 const router = express.Router();
-
-
-// All admin routes require:
-// 1. Valid JWT
-// 2. ADMIN role
 
 router.use(protect, adminOnly);
 
@@ -34,11 +33,13 @@ router.get('/users', getAllUsers);
 
 router.put(
     '/users/:id/suspend',
+    validateObjectId('id'),
     suspendUser
 );
 
 router.put(
     '/users/:id/unsuspend',
+    validateObjectId('id'),
     unsuspendUser
 );
 
@@ -46,8 +47,9 @@ router.put(
 // Items
 router.get('/items', getAllItems);
 
-router.delete(
-    '/items/:id',
+router.put(
+    '/items/:id/remove',
+    validateObjectId('id'),
     removeItem
 );
 
@@ -61,8 +63,8 @@ router.get('/disputes', getAllDisputes);
 
 router.put(
     '/disputes/:id',
+    validateObjectId('id'),
     updateDispute
 );
-
 
 module.exports = router;

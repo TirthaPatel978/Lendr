@@ -71,5 +71,8 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ location: '2dsphere' });
+userSchema.index({ role: 1 });
+userSchema.index({ isSuspended: 1 });
+userSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('User', userSchema);

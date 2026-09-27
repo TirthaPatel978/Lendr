@@ -159,6 +159,11 @@ const getItemById = async (req, res) => {
                 message: 'Item not found'
             });
         }
+        if (item.moderationStatus === 'REMOVED') {
+            return res.status(404).json({
+                message: 'Item not found'
+            });
+        }
 
         res.json({
             item

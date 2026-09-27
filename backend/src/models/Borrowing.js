@@ -90,5 +90,25 @@ const borrowingSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+borrowingSchema.index({
+    borrower: 1,
+    createdAt: -1
+});
 
+borrowingSchema.index({
+    lender: 1,
+    createdAt: -1
+});
+
+borrowingSchema.index({
+    status: 1,
+    endDate: 1
+});
+
+borrowingSchema.index({
+    item: 1,
+    status: 1,
+    startDate: 1,
+    endDate: 1
+});
 module.exports = mongoose.model('Borrowing', borrowingSchema);

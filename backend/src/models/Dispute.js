@@ -84,5 +84,23 @@ const disputeSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+disputeSchema.index({
+    reportedBy: 1,
+    createdAt: -1
+});
 
+disputeSchema.index({
+    againstUser: 1,
+    createdAt: -1
+});
+
+disputeSchema.index({
+    status: 1,
+    createdAt: -1
+});
+
+disputeSchema.index({
+    borrowing: 1,
+    status: 1
+});
 module.exports = mongoose.model('Dispute', disputeSchema);

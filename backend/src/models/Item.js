@@ -109,5 +109,19 @@ const itemSchema = new mongoose.Schema(
 
 // Geospatial index for nearby item searches
 itemSchema.index({ location: '2dsphere' });
+itemSchema.index({
+    moderationStatus: 1,
+    availability: 1
+});
+
+itemSchema.index({
+    owner: 1,
+    createdAt: -1
+});
+
+itemSchema.index({
+    category: 1,
+    moderationStatus: 1
+});
 
 module.exports = mongoose.model('Item', itemSchema);

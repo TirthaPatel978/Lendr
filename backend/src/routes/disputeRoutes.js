@@ -1,5 +1,5 @@
 const express = require('express');
-const upload = require('../middleware/uploadMiddleware');
+
 const {
     createDispute,
     getMyDisputes,
@@ -9,18 +9,47 @@ const {
 
 const protect = require('../middleware/authMiddleware');
 
+const {
+    validateObjectId
+} = require('../middleware/validationMiddleware');
+
+const upload = require('../middleware/uploadMiddleware');
+
 const router = express.Router();
 
+
+// Create dispute
 router.post(
     '/',
     protect,
     upload.array('evidencePhotos', 5),
     createDispute
 );
-router.get('/my-disputes', protect, getMyDisputes);
 
-router.get('/:id', protect, getDisputeById);
 
-router.put('/:id/status', protect, updateDisputeStatus);
+// My disputes
+router.get(
+    '/my-disputes',
+    protect,
+    getMyDisputes
+);
 
-module.exports = router;    
+
+// Get dispute
+router.get(
+    '/:id',
+    protect,
+    validateObjectId('id'),
+    getDisputeById
+);
+
+
+// Update dispute status
+router.put(
+    '/:id/status',
+    protect,
+    validateObjectId('id'),
+    updateDisputeStatus
+);
+
+module.exports = router;

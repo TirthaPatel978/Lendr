@@ -48,5 +48,8 @@ reviewSchema.index(
         unique: true
     }
 );
-
+reviewSchema.index({
+    reviewedUser: 1,
+    createdAt: -1
+});
 module.exports = mongoose.model('Review', reviewSchema);

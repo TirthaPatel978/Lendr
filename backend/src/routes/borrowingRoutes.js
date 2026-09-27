@@ -1,5 +1,6 @@
 const express = require('express');
-
+const validateBorrowableItem =
+    require('../middleware/borrowItemMiddleware');
 const {
     getRentalPricePreview,
     createBorrowingRequest,
@@ -14,24 +15,90 @@ const {
 
 const protect = require('../middleware/authMiddleware');
 
+const {
+    validateObjectId,
+    validateBorrowingDates
+} = require('../middleware/validationMiddleware');
+
 const router = express.Router();
 
-router.get('/price-preview', protect, getRentalPricePreview);
 
-router.post('/', protect, createBorrowingRequest);
+// Rental price preview
+router.get(
+    '/price-preview',
+    protect,
+    getRentalPricePreview
+);
 
-router.get('/my-requests', protect, getMyBorrowRequests);
 
-router.get('/lender-requests', protect, getLenderRequests);
+// Create borrowing request
+router.post(
+    '/',
+    protect,
+    validateBorrowingDates,
+    validateBorrowableItem,
+    createBorrowingRequest
+);
 
-router.put('/:id/approve', protect, approveBorrowing);
 
-router.put('/:id/reject', protect, rejectBorrowing);
+// My borrowing requests
+router.get(
+    '/my-requests',
+    protect,
+    getMyBorrowRequests
+);
 
-router.put('/:id/pay', protect, makePayment);
 
-router.put('/:id/return', protect, returnItem);
+// Requests for lender's items
+router.get(
+    '/lender-requests',
+    protect,
+    getLenderRequests
+);
 
-router.put('/:id/complete', protect, completeBorrowing);
+
+// Approve request
+router.put(
+    '/:id/approve',
+    protect,
+    validateObjectId('id'),
+    approveBorrowing
+);
+
+
+// Reject request
+router.put(
+    '/:id/reject',
+    protect,
+    validateObjectId('id'),
+    rejectBorrowing
+);
+
+
+// Simulated payment
+router.put(
+    '/:id/pay',
+    protect,
+    validateObjectId('id'),
+    makePayment
+);
+
+
+// Return item
+router.put(
+    '/:id/return',
+    protect,
+    validateObjectId('id'),
+    returnItem
+);
+
+
+// Complete borrowing
+router.put(
+    '/:id/complete',
+    protect,
+    validateObjectId('id'),
+    completeBorrowing
+);
 
 module.exports = router;
