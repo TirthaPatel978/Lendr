@@ -7,7 +7,9 @@ import {
 
 import {
     Search,
-    UserRound
+    UserRound,
+    Bell,
+    ShieldAlert
 } from 'lucide-react';
 
 import { useAuth } from '../context/useAuth';
@@ -104,6 +106,20 @@ function Navbar() {
 
                     {user ? (
                         <>
+                        <Link
+                                to="/notifications"
+                                className="navbar-link"
+                                title="Notifications"
+                            >
+                                <Bell size={17} />
+                            </Link>
+                            <Link
+                                to="/disputes"
+                                className="navbar-link"
+                                title="Disputes"
+                            >
+                                <ShieldAlert size={17} />
+                            </Link>
                             <Link
                                 to="/dashboard"
                                 className="navbar-user"

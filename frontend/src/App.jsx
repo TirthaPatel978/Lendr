@@ -12,7 +12,14 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ItemDetails from './pages/ItemDetails';
 import ListEquipment from './pages/ListEquipment';
+import EditEquipment from './pages/EditEquipment';
+import Profile from './pages/Profile';
 import BorrowManagement from './pages/BorrowManagement';
+import Notifications from './pages/Notifications';
+import Reviews from './pages/Reviews';
+import Disputes from './pages/Disputes';
+import Admin from './pages/Admin';
+
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -62,6 +69,34 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute>
+                            <Profile />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/list-equipment"
+                    element={
+                        <ProtectedRoute>
+                            <ListEquipment />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/items/:id/edit"
+                    element={
+                        <ProtectedRoute>
+                            <EditEquipment />
+                        </ProtectedRoute>
+                    }
+                />
+
                 <Route
                     path="/borrow-management"
                     element={
@@ -70,11 +105,39 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+
                 <Route
-                    path="/list-equipment"
+                    path="/notifications"
                     element={
                         <ProtectedRoute>
-                            <ListEquipment />
+                            <Notifications />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/reviews"
+                    element={
+                        <ProtectedRoute>
+                            <Reviews />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/disputes"
+                    element={
+                        <ProtectedRoute>
+                            <Disputes />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute>
+                            <Admin />
                         </ProtectedRoute>
                     }
                 />

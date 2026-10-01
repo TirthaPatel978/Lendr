@@ -1100,3 +1100,59 @@
         height: 53px;
     }
 }
+.dashboard-profile-details {
+    min-width: 0;
+}
+
+.dashboard-profile-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 9px;
+    color: #1f5fae;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    transition: color 0.2s ease;
+}
+
+.dashboard-profile-edit:hover {
+    color: #174d8f;
+}
+/* ============================================
+   PROFILE HEADER / EDIT PROFILE
+============================================ */
+
+.dashboard-profile-top {
+    display: flex;
+    align-items: center;
+}
+
+.dashboard-profile-identity {
+    min-width: 0;
+}
+
+.dashboard-profile-edit {
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* Keep the profile link comfortable on smaller screens */
+
+@media (max-width: 600px) {
+
+    .dashboard-profile-top {
+        align-items: flex-start;
+    }
+
+    .dashboard-profile-edit {
+        margin-top: 3px;
+    }
+
+}

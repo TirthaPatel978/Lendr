@@ -2,13 +2,21 @@ const cron = require('node-cron');
 const Borrowing = require('../models/Borrowing');
 const createNotification = require('./createNotification');
 
+
+// ============================================
+// CHECK BORROWING DEADLINES
+// ============================================
+
 const checkBorrowingDeadlines = async () => {
+
     try {
+
         const now = new Date();
 
-        // -----------------------------
-        // Date ranges
-        // -----------------------------
+
+        // ========================================
+        // DATE RANGES
+        // ========================================
 
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
@@ -17,14 +25,17 @@ const checkBorrowingDeadlines = async () => {
         todayEnd.setHours(23, 59, 59, 999);
 
         const tomorrowStart = new Date(todayStart);
-        tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+        tomorrowStart.setDate(
+            tomorrowStart.getDate() + 1
+        );
 
         const tomorrowEnd = new Date(tomorrowStart);
         tomorrowEnd.setHours(23, 59, 59, 999);
 
-        // -----------------------------
-        // 1. Due tomorrow
-        // -----------------------------
+
+        // ========================================
+        // 1. DUE TOMORROW
+        // ========================================
 
         const dueTomorrow = await Borrowing.find({
             status: 'ACTIVE',
@@ -35,23 +46,28 @@ const checkBorrowingDeadlines = async () => {
             }
         }).populate('item', 'name');
 
+
         for (const borrowing of dueTomorrow) {
 
             await createNotification({
                 recipient: borrowing.borrower,
                 type: 'DUE_TOMORROW',
+                title: 'Your item is due tomorrow',
                 message: `Your borrowed item "${borrowing.item.name}" is due tomorrow.`,
-                borrowing: borrowing._id
+                relatedBorrowing: borrowing._id,
+                relatedItem: borrowing.item._id
             });
+
 
             borrowing.reminders.dueTomorrow = true;
 
             await borrowing.save();
         }
 
-        // -----------------------------
-        // 2. Due today
-        // -----------------------------
+
+        // ========================================
+        // 2. DUE TODAY
+        // ========================================
 
         const dueToday = await Borrowing.find({
             status: 'ACTIVE',
@@ -62,23 +78,28 @@ const checkBorrowingDeadlines = async () => {
             }
         }).populate('item', 'name');
 
+
         for (const borrowing of dueToday) {
 
             await createNotification({
                 recipient: borrowing.borrower,
                 type: 'DUE_TODAY',
+                title: 'Your item is due today',
                 message: `Your borrowed item "${borrowing.item.name}" is due today.`,
-                borrowing: borrowing._id
+                relatedBorrowing: borrowing._id,
+                relatedItem: borrowing.item._id
             });
+
 
             borrowing.reminders.dueToday = true;
 
             await borrowing.save();
         }
 
-        // -----------------------------
-        // 3. Mark overdue
-        // -----------------------------
+
+        // ========================================
+        // 3. MARK OVERDUE
+        // ========================================
 
         const overdueBorrowings = await Borrowing.find({
             status: 'ACTIVE',
@@ -88,37 +109,56 @@ const checkBorrowingDeadlines = async () => {
             }
         }).populate('item', 'name');
 
+
         for (const borrowing of overdueBorrowings) {
 
             borrowing.status = 'OVERDUE';
             borrowing.wasOverdue = true;
 
+
             await borrowing.save();
 
+
+            // ------------------------------------
             // Notify borrower
+            // ------------------------------------
+
             await createNotification({
                 recipient: borrowing.borrower,
                 type: 'OVERDUE',
+                title: 'Your borrowed item is overdue',
                 message: `Your borrowed item "${borrowing.item.name}" is overdue.`,
-                borrowing: borrowing._id
+                relatedBorrowing: borrowing._id,
+                relatedItem: borrowing.item._id
             });
 
+
+            // ------------------------------------
             // Notify lender
+            // ------------------------------------
+
             await createNotification({
                 recipient: borrowing.lender,
                 type: 'OVERDUE',
+                title: 'A borrowed item is overdue',
                 message: `The item "${borrowing.item.name}" is overdue and has not been returned.`,
-                borrowing: borrowing._id
+                relatedBorrowing: borrowing._id,
+                relatedItem: borrowing.item._id
             });
+
 
             borrowing.reminders.overdue = true;
 
             await borrowing.save();
         }
 
-        console.log('Borrowing deadline check completed.');
+
+        console.log(
+            'Borrowing deadline check completed.'
+        );
 
     } catch (error) {
+
         console.error(
             'Borrowing deadline check failed:',
             error.message
@@ -127,7 +167,10 @@ const checkBorrowingDeadlines = async () => {
 };
 
 
-// Run every hour
+// ============================================
+// RUN EVERY HOUR
+// ============================================
+
 cron.schedule('0 * * * *', () => {
     checkBorrowingDeadlines();
 });

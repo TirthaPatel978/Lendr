@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+
+import {
+    Link
+} from 'react-router-dom';
+
 import {
     Package,
     ArrowDownToLine,
@@ -11,7 +15,8 @@ import {
     Clock3,
     CheckCircle2,
     AlertCircle,
-    ArrowRight
+    ArrowRight,
+    Pencil
 } from 'lucide-react';
 
 import api from '../services/api';
@@ -19,135 +24,185 @@ import api from '../services/api';
 import './Dashboard.css';
 
 function Dashboard() {
-    const [profile, setProfile] = useState(null);
-    const [items, setItems] = useState([]);
-    const [borrowRequests, setBorrowRequests] = useState([]);
-    const [lenderRequests, setLenderRequests] = useState([]);
-    const [notifications, setNotifications] = useState([]);
+    const [profile, setProfile] =
+        useState(null);
 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [items, setItems] =
+        useState([]);
+
+    const [borrowRequests, setBorrowRequests] =
+        useState([]);
+
+    const [lenderRequests, setLenderRequests] =
+        useState([]);
+
+    const [notifications, setNotifications] =
+        useState([]);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    const [error, setError] =
+        useState('');
 
     useEffect(() => {
-        const loadDashboard = async () => {
-            try {
-                setLoading(true);
-                setError('');
+        const loadDashboard =
+            async () => {
+                try {
+                    setLoading(true);
+                    setError('');
 
-                const [
-                    profileResponse,
-                    itemsResponse,
-                    borrowResponse,
-                    lenderResponse,
-                    notificationResponse
-                ] = await Promise.all([
-                    api.get('/users/profile'),
-                    api.get('/items/my-items'),
-                    api.get('/borrowings/my-requests'),
-                    api.get('/borrowings/lender-requests'),
-                    api.get('/notifications')
-                ]);
+                    const [
+                        profileResponse,
+                        itemsResponse,
+                        borrowResponse,
+                        lenderResponse,
+                        notificationResponse
+                    ] = await Promise.all([
+                        api.get(
+                            '/users/profile'
+                        ),
 
-                setProfile(profileResponse.data.user);
+                        api.get(
+                            '/items/my-items'
+                        ),
 
-                setItems(
-                    itemsResponse.data.items ||
-                    itemsResponse.data ||
-                    []
-                );
+                        api.get(
+                            '/borrowings/my-requests'
+                        ),
 
-                setBorrowRequests(
-                    borrowResponse.data.borrowings ||
-                    borrowResponse.data.requests ||
-                    borrowResponse.data ||
-                    []
-                );
+                        api.get(
+                            '/borrowings/lender-requests'
+                        ),
 
-                setLenderRequests(
-                    lenderResponse.data.borrowings ||
-                    lenderResponse.data.requests ||
-                    lenderResponse.data ||
-                    []
-                );
+                        api.get(
+                            '/notifications'
+                        )
+                    ]);
 
-                setNotifications(
-                    notificationResponse.data.notifications ||
-                    notificationResponse.data ||
-                    []
-                );
+                    setProfile(
+                        profileResponse.data.user
+                    );
 
-            } catch (err) {
-                console.error(
-                    'Failed to load dashboard:',
-                    err
-                );
+                    setItems(
+                        itemsResponse.data.items ||
+                        itemsResponse.data ||
+                        []
+                    );
 
-                setError(
-                    err.response?.data?.message ||
-                    'Failed to load dashboard data.'
-                );
+                    setBorrowRequests(
+                        borrowResponse.data.borrowings ||
+                        borrowResponse.data.requests ||
+                        borrowResponse.data ||
+                        []
+                    );
 
-            } finally {
-                setLoading(false);
-            }
-        };
+                    setLenderRequests(
+                        lenderResponse.data.borrowings ||
+                        lenderResponse.data.requests ||
+                        lenderResponse.data ||
+                        []
+                    );
+
+                    setNotifications(
+                        notificationResponse.data.notifications ||
+                        notificationResponse.data ||
+                        []
+                    );
+
+                } catch (err) {
+                    console.error(
+                        'Failed to load dashboard:',
+                        err
+                    );
+
+                    setError(
+                        err.response?.data
+                            ?.message ||
+                        'Failed to load dashboard data.'
+                    );
+
+                } finally {
+                    setLoading(false);
+                }
+            };
 
         loadDashboard();
     }, []);
 
-    const unreadNotifications = notifications.filter(
-        (notification) => !notification.isRead
-    ).length;
+    const unreadNotifications =
+        notifications.filter(
+            (notification) =>
+                !notification.isRead
+        ).length;
 
-    const activeBorrowings = borrowRequests.filter(
-        (borrowing) =>
-            borrowing.status === 'ACTIVE' ||
-            borrowing.status === 'OVERDUE'
-    ).length;
+    const activeBorrowings =
+        borrowRequests.filter(
+            (borrowing) =>
+                borrowing.status ===
+                    'ACTIVE' ||
+                borrowing.status ===
+                    'OVERDUE'
+        ).length;
 
-    const pendingIncoming = lenderRequests.filter(
-        (borrowing) =>
-            borrowing.status === 'REQUESTED'
-    ).length;
+    const pendingIncoming =
+        lenderRequests.filter(
+            (borrowing) =>
+                borrowing.status ===
+                'REQUESTED'
+        ).length;
 
-    const formatDate = (date) => {
-        if (!date) {
-            return '—';
-        }
-
-        return new Date(date).toLocaleDateString(
-            'en-IN',
-            {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
+    const formatDate =
+        (date) => {
+            if (!date) {
+                return '—';
             }
-        );
-    };
 
-    const formatStatus = (status) => {
-        if (!status) {
-            return 'Unknown';
-        }
-
-        return status
-            .toLowerCase()
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, (letter) =>
-                letter.toUpperCase()
+            return new Date(
+                date
+            ).toLocaleDateString(
+                'en-IN',
+                {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                }
             );
-    };
+        };
+
+    const formatStatus =
+        (status) => {
+            if (!status) {
+                return 'Unknown';
+            }
+
+            return status
+                .toLowerCase()
+                .replace(
+                    /_/g,
+                    ' '
+                )
+                .replace(
+                    /\b\w/g,
+                    (letter) =>
+                        letter.toUpperCase()
+                );
+        };
 
     if (loading) {
         return (
             <main className="dashboard-page">
+
                 <div className="dashboard-loading">
+
                     <div className="dashboard-spinner" />
 
                     <p>
                         Getting your Lendr space ready...
                     </p>
+
                 </div>
+
             </main>
         );
     }
@@ -155,7 +210,9 @@ function Dashboard() {
     if (error) {
         return (
             <main className="dashboard-page">
+
                 <div className="dashboard-error">
+
                     <AlertCircle size={30} />
 
                     <h2>
@@ -174,17 +231,15 @@ function Dashboard() {
                     >
                         Try again
                     </button>
+
                 </div>
+
             </main>
         );
     }
 
     return (
         <main className="dashboard-page">
-
-            {/* --------------------------------
-                INTRO
-            -------------------------------- */}
 
             <section className="dashboard-intro">
 
@@ -197,8 +252,10 @@ function Dashboard() {
                     <h1>
                         Welcome back,
                         <br />
+
                         <em>
-                            {profile?.name || 'there'}.
+                            {profile?.name ||
+                                'there'}.
                         </em>
                     </h1>
 
@@ -210,24 +267,20 @@ function Dashboard() {
 
                 </div>
 
-                <a
-                    href="/list-equipment"
+                <Link
+                    to="/list-equipment"
                     className="dashboard-list-button"
                 >
                     <Plus size={16} />
                     List equipment
-                </a>
+                </Link>
 
             </section>
 
-            {/* --------------------------------
-                QUICK NUMBERS
-            -------------------------------- */}
 
             <section className="dashboard-numbers">
 
                 <div className="dashboard-number">
-
                     <span>
                         EQUIPMENT
                     </span>
@@ -239,11 +292,9 @@ function Dashboard() {
                     <p>
                         items you're sharing
                     </p>
-
                 </div>
 
                 <div className="dashboard-number">
-
                     <span>
                         BORROWING
                     </span>
@@ -255,11 +306,9 @@ function Dashboard() {
                     <p>
                         active right now
                     </p>
-
                 </div>
 
                 <div className="dashboard-number">
-
                     <span>
                         REQUESTS
                     </span>
@@ -271,11 +320,9 @@ function Dashboard() {
                     <p>
                         waiting for you
                     </p>
-
                 </div>
 
                 <div className="dashboard-number">
-
                     <span>
                         NOTIFICATIONS
                     </span>
@@ -287,18 +334,12 @@ function Dashboard() {
                     <p>
                         waiting to be read
                     </p>
-
                 </div>
 
             </section>
 
-            {/* --------------------------------
-                FEATURED ACTIVITY
-            -------------------------------- */}
 
             <section className="dashboard-main-grid">
-
-                {/* PROFILE */}
 
                 <div className="dashboard-profile">
 
@@ -325,7 +366,7 @@ function Dashboard() {
 
                         </div>
 
-                        <div>
+                        <div className="dashboard-profile-identity">
 
                             <h2>
                                 {profile?.name}
@@ -336,6 +377,14 @@ function Dashboard() {
                             </p>
 
                         </div>
+
+                        <Link
+                            to="/profile"
+                            className="dashboard-text-link dashboard-profile-edit"
+                        >
+                            Edit profile
+                            <Pencil size={14} />
+                        </Link>
 
                     </div>
 
@@ -349,9 +398,17 @@ function Dashboard() {
                                 Rating
                             </span>
 
+                            <Link
+                                to="/reviews"
+                                className="dashboard-action-link"
+                            >
+                                Reviews & ratings
+                            </Link>
+
                             <strong>
                                 {Number(
-                                    profile?.rating || 0
+                                    profile?.rating ||
+                                    0
                                 ).toFixed(1)}
                             </strong>
 
@@ -366,7 +423,8 @@ function Dashboard() {
                             </span>
 
                             <strong>
-                                {profile?.reliabilityScore || 0}
+                                {profile?.reliabilityScore ||
+                                    0}
                             </strong>
 
                         </div>
@@ -375,7 +433,6 @@ function Dashboard() {
 
                 </div>
 
-                {/* NOTIFICATIONS */}
 
                 <div className="dashboard-activity">
 
@@ -400,11 +457,13 @@ function Dashboard() {
                     {notifications.length === 0 ? (
 
                         <div className="dashboard-empty">
+
                             <Bell size={25} />
 
                             <p>
                                 You're all caught up.
                             </p>
+
                         </div>
 
                     ) : (
@@ -413,45 +472,55 @@ function Dashboard() {
 
                             {notifications
                                 .slice(0, 4)
-                                .map((notification) => (
+                                .map(
+                                    (
+                                        notification
+                                    ) => (
 
-                                    <div
-                                        className={
-                                            notification.isRead
-                                                ? 'dashboard-notification'
-                                                : 'dashboard-notification unread'
-                                        }
-                                        key={notification._id}
-                                    >
+                                        <div
+                                            className={
+                                                notification.isRead
+                                                    ? 'dashboard-notification'
+                                                    : 'dashboard-notification unread'
+                                            }
+                                            key={
+                                                notification._id
+                                            }
+                                        >
 
-                                        <div className="notification-mark">
-                                            <Bell size={13} />
-                                        </div>
+                                            <div className="notification-mark">
+                                                <Bell size={13} />
+                                            </div>
 
-                                        <div>
+                                            <div>
 
-                                            <strong>
-                                                {notification.title ||
-                                                    formatStatus(
-                                                        notification.type
+                                                <strong>
+                                                    {
+                                                        notification.title ||
+                                                        formatStatus(
+                                                            notification.type
+                                                        )
+                                                    }
+                                                </strong>
+
+                                                <p>
+                                                    {
+                                                        notification.message
+                                                    }
+                                                </p>
+
+                                                <span>
+                                                    {formatDate(
+                                                        notification.createdAt
                                                     )}
-                                            </strong>
+                                                </span>
 
-                                            <p>
-                                                {notification.message}
-                                            </p>
-
-                                            <span>
-                                                {formatDate(
-                                                    notification.createdAt
-                                                )}
-                                            </span>
+                                            </div>
 
                                         </div>
 
-                                    </div>
-
-                                ))}
+                                    )
+                                )}
 
                         </div>
 
@@ -461,9 +530,6 @@ function Dashboard() {
 
             </section>
 
-            {/* --------------------------------
-                MY EQUIPMENT
-            -------------------------------- */}
 
             <section className="dashboard-content-section">
 
@@ -481,13 +547,13 @@ function Dashboard() {
 
                     </div>
 
-                    <a
-                        href="/list-equipment"
+                    <Link
+                        to="/list-equipment"
                         className="dashboard-text-link"
                     >
                         Add equipment
                         <ArrowRight size={14} />
-                    </a>
+                    </Link>
 
                 </div>
 
@@ -509,12 +575,12 @@ function Dashboard() {
                             Give it another life in your community.
                         </p>
 
-                        <a
-                            href="/list-equipment"
+                        <Link
+                            to="/list-equipment"
                             className="dashboard-outline-button"
                         >
                             List your first item
-                        </a>
+                        </Link>
 
                     </div>
 
@@ -524,67 +590,93 @@ function Dashboard() {
 
                         {items
                             .slice(0, 4)
-                            .map((item) => (
+                            .map(
+                                (item) => (
 
-                                <div
-                                    className="dashboard-equipment"
-                                    key={item._id}
-                                >
+                                    <div
+                                        className="dashboard-equipment"
+                                        key={
+                                            item._id
+                                        }
+                                    >
 
-                                    <div className="equipment-image">
+                                        <div className="equipment-image">
 
-                                        {item.photos?.[0] ? (
+                                            {item.photos?.[0] ? (
 
-                                            <img
-                                                src={item.photos[0]}
-                                                alt={item.name}
-                                            />
+                                                <img
+                                                    src={
+                                                        item.photos[0]
+                                                    }
+                                                    alt={
+                                                        item.name
+                                                    }
+                                                />
 
-                                        ) : (
+                                            ) : (
 
-                                            <Package size={25} />
+                                                <Package size={25} />
 
-                                        )}
-
-                                    </div>
-
-                                    <div className="equipment-info">
-
-                                        <span>
-                                            {item.category}
-                                        </span>
-
-                                        <h3>
-                                            {item.name}
-                                        </h3>
-
-                                        <p>
-                                            {formatStatus(
-                                                item.condition
                                             )}
-                                        </p>
 
-                                    </div>
+                                        </div>
 
-                                    <div className="equipment-price">
+                                        <div className="equipment-info">
 
-                                        <strong>
-                                            {item.rentalType === 'FREE'
-                                                ? 'Free'
-                                                : `₹${item.rentalPricePerDay}`}
-                                        </strong>
-
-                                        {item.rentalType === 'PAID' && (
                                             <span>
-                                                / day
+                                                {
+                                                    item.category
+                                                }
                                             </span>
-                                        )}
+
+                                            <h3>
+                                                {
+                                                    item.name
+                                                }
+                                            </h3>
+
+                                            <p>
+                                                {formatStatus(
+                                                    item.condition
+                                                )}
+                                            </p>
+
+                                        </div>
+
+                                        <div className="equipment-price">
+
+                                            <strong>
+                                                {item.rentalType ===
+                                                'FREE'
+                                                    ? 'Free'
+                                                    : `₹${item.rentalPricePerDay}`}
+                                            </strong>
+
+                                            {item.rentalType ===
+                                                'PAID' && (
+                                                <span>
+                                                    / day
+                                                </span>
+                                            )}
+
+                                            <Link
+                                                to={`/items/${item._id}/edit`}
+                                                className="dashboard-text-link"
+                                                style={{
+                                                    marginTop:
+                                                        '8px'
+                                                }}
+                                            >
+                                                <Pencil size={13} />
+                                                Edit listing
+                                            </Link>
+
+                                        </div>
 
                                     </div>
 
-                                </div>
-
-                            ))}
+                                )
+                            )}
 
                     </div>
 
@@ -592,9 +684,6 @@ function Dashboard() {
 
             </section>
 
-            {/* --------------------------------
-                BORROWING
-            -------------------------------- */}
 
             <section className="dashboard-borrow-grid">
 
@@ -611,6 +700,7 @@ function Dashboard() {
                             <h2>
                                 Things you're borrowing
                             </h2>
+
                             <Link
                                 to="/borrow-management"
                                 className="dashboard-text-link"
@@ -618,6 +708,7 @@ function Dashboard() {
                                 Manage borrowing
                                 <ArrowRight size={14} />
                             </Link>
+
                         </div>
 
                         <ArrowDownToLine size={19} />
@@ -627,14 +718,16 @@ function Dashboard() {
                     {borrowRequests.length === 0 ? (
 
                         <div className="dashboard-small-empty">
+
                             <p>
                                 You haven't requested anything yet.
                             </p>
 
-                            <a href="/browse">
+                            <Link to="/browse">
                                 Explore equipment
                                 <ArrowRight size={14} />
-                            </a>
+                            </Link>
+
                         </div>
 
                     ) : (
@@ -643,51 +736,62 @@ function Dashboard() {
 
                             {borrowRequests
                                 .slice(0, 4)
-                                .map((request) => (
+                                .map(
+                                    (
+                                        request
+                                    ) => (
 
-                                    <div
-                                        className="dashboard-request"
-                                        key={request._id}
-                                    >
+                                        <div
+                                            className="dashboard-request"
+                                            key={
+                                                request._id
+                                            }
+                                        >
 
-                                        <div className="request-symbol">
-                                            {request.status === 'COMPLETED' ? (
-                                                <CheckCircle2 size={15} />
-                                            ) : (
-                                                <Clock3 size={15} />
-                                            )}
-                                        </div>
+                                            <div className="request-symbol">
 
-                                        <div>
-
-                                            <strong>
-                                                {request.item?.name ||
-                                                    'Equipment'}
-                                            </strong>
-
-                                            <span>
-                                                {formatDate(
-                                                    request.startDate
+                                                {request.status ===
+                                                'COMPLETED' ? (
+                                                    <CheckCircle2 size={15} />
+                                                ) : (
+                                                    <Clock3 size={15} />
                                                 )}
-                                                {' — '}
-                                                {formatDate(
-                                                    request.endDate
+
+                                            </div>
+
+                                            <div>
+
+                                                <strong>
+                                                    {
+                                                        request.item?.name ||
+                                                        'Equipment'
+                                                    }
+                                                </strong>
+
+                                                <span>
+                                                    {formatDate(
+                                                        request.startDate
+                                                    )}
+                                                    {' — '}
+                                                    {formatDate(
+                                                        request.endDate
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                            <span
+                                                className={`request-status request-${request.status?.toLowerCase()}`}
+                                            >
+                                                {formatStatus(
+                                                    request.status
                                                 )}
                                             </span>
 
                                         </div>
 
-                                        <span
-                                            className={`request-status request-${request.status?.toLowerCase()}`}
-                                        >
-                                            {formatStatus(
-                                                request.status
-                                            )}
-                                        </span>
-
-                                    </div>
-
-                                ))}
+                                    )
+                                )}
 
                         </div>
 
@@ -695,7 +799,6 @@ function Dashboard() {
 
                 </div>
 
-                {/* INCOMING */}
 
                 <div className="dashboard-content-section">
 
@@ -710,6 +813,7 @@ function Dashboard() {
                             <h2>
                                 People requesting your items
                             </h2>
+
                             <Link
                                 to="/borrow-management"
                                 className="dashboard-text-link"
@@ -717,6 +821,7 @@ function Dashboard() {
                                 Manage borrowing
                                 <ArrowRight size={14} />
                             </Link>
+
                         </div>
 
                         <ArrowUpFromLine size={19} />
@@ -726,9 +831,11 @@ function Dashboard() {
                     {lenderRequests.length === 0 ? (
 
                         <div className="dashboard-small-empty">
+
                             <p>
                                 No incoming requests right now.
                             </p>
+
                         </div>
 
                     ) : (
@@ -737,47 +844,55 @@ function Dashboard() {
 
                             {lenderRequests
                                 .slice(0, 4)
-                                .map((request) => (
+                                .map(
+                                    (
+                                        request
+                                    ) => (
 
-                                    <div
-                                        className="dashboard-request"
-                                        key={request._id}
-                                    >
+                                        <div
+                                            className="dashboard-request"
+                                            key={
+                                                request._id
+                                            }
+                                        >
 
-                                        <div className="request-symbol">
-                                            <ArrowUpFromLine size={15} />
-                                        </div>
+                                            <div className="request-symbol">
+                                                <ArrowUpFromLine size={15} />
+                                            </div>
 
-                                        <div>
+                                            <div>
 
-                                            <strong>
-                                                {request.item?.name ||
-                                                    'Equipment'}
-                                            </strong>
+                                                <strong>
+                                                    {
+                                                        request.item?.name ||
+                                                        'Equipment'
+                                                    }
+                                                </strong>
 
-                                            <span>
-                                                {formatDate(
-                                                    request.startDate
-                                                )}
-                                                {' — '}
-                                                {formatDate(
-                                                    request.endDate
+                                                <span>
+                                                    {formatDate(
+                                                        request.startDate
+                                                    )}
+                                                    {' — '}
+                                                    {formatDate(
+                                                        request.endDate
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                            <span
+                                                className={`request-status request-${request.status?.toLowerCase()}`}
+                                            >
+                                                {formatStatus(
+                                                    request.status
                                                 )}
                                             </span>
 
                                         </div>
 
-                                        <span
-                                            className={`request-status request-${request.status?.toLowerCase()}`}
-                                        >
-                                            {formatStatus(
-                                                request.status
-                                            )}
-                                        </span>
-
-                                    </div>
-
-                                ))}
+                                    )
+                                )}
 
                         </div>
 

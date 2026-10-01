@@ -2,11 +2,14 @@ const User = require('../models/User');
 const Item = require('../models/Item');
 const Borrowing = require('../models/Borrowing');
 const Dispute = require('../models/Dispute');
+const Notification = require('../models/Notification');
 
 
-// =========================
-// DASHBOARD STATISTICS
-// =========================
+/*
+ * -----------------------------------------
+ * ADMIN DASHBOARD
+ * -----------------------------------------
+ */
 
 const getDashboardStats = async (req, res) => {
     try {
@@ -26,7 +29,9 @@ const getDashboardStats = async (req, res) => {
             Borrowing.countDocuments(),
 
             Borrowing.countDocuments({
-                status: 'ACTIVE'
+                status: {
+                    $in: ['ACTIVE', 'OVERDUE']
+                }
             }),
 
             Borrowing.countDocuments({
@@ -56,25 +61,28 @@ const getDashboardStats = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            message: 'Failed to fetch dashboard statistics',
+            message: 'Failed to load admin dashboard statistics',
             error: error.message
         });
     }
 };
 
 
-// =========================
-// GET ALL USERS
-// =========================
+/*
+ * -----------------------------------------
+ * USERS
+ * -----------------------------------------
+ */
 
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.find()
             .select('-password')
-            .sort({ createdAt: -1 });
+            .sort({
+                createdAt: -1
+            });
 
         res.json({
-            count: users.length,
             users
         });
 
@@ -87,17 +95,13 @@ const getAllUsers = async (req, res) => {
 };
 
 
-// =========================
-// SUSPEND USER
-// =========================
-
 const suspendUser = async (req, res) => {
     try {
         const { id } = req.params;
 
         if (id === req.user.toString()) {
             return res.status(400).json({
-                message: 'Admin cannot suspend their own account'
+                message: 'You cannot suspend your own account'
             });
         }
 
@@ -115,18 +119,18 @@ const suspendUser = async (req, res) => {
             });
         }
 
-        if (user.isSuspended) {
-            return res.status(400).json({
-                message: 'User is already suspended'
-            });
-        }
-
         user.isSuspended = true;
 
         await user.save();
 
         res.json({
-            message: 'User suspended successfully'
+            message: 'User suspended successfully',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                isSuspended: user.isSuspended
+            }
         });
 
     } catch (error) {
@@ -137,10 +141,6 @@ const suspendUser = async (req, res) => {
     }
 };
 
-
-// =========================
-// UNSUSPEND USER
-// =========================
 
 const unsuspendUser = async (req, res) => {
     try {
@@ -154,18 +154,18 @@ const unsuspendUser = async (req, res) => {
             });
         }
 
-        if (!user.isSuspended) {
-            return res.status(400).json({
-                message: 'User is not suspended'
-            });
-        }
-
         user.isSuspended = false;
 
         await user.save();
 
         res.json({
-            message: 'User unsuspended successfully'
+            message: 'User unsuspended successfully',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                isSuspended: user.isSuspended
+            }
         });
 
     } catch (error) {
@@ -177,18 +177,28 @@ const unsuspendUser = async (req, res) => {
 };
 
 
-// =========================
-// GET ALL ITEMS
-// =========================
+/*
+ * -----------------------------------------
+ * ITEMS
+ * -----------------------------------------
+ */
 
 const getAllItems = async (req, res) => {
     try {
         const items = await Item.find()
-            .populate('owner', 'name email rating reliabilityScore')
-            .sort({ createdAt: -1 });
+            .populate(
+                'owner',
+                'name email avatar rating reliabilityScore'
+            )
+            .populate(
+                'removedBy',
+                'name email'
+            )
+            .sort({
+                createdAt: -1
+            });
 
         res.json({
-            count: items.length,
             items
         });
 
@@ -201,13 +211,30 @@ const getAllItems = async (req, res) => {
 };
 
 
-// =========================
-// REMOVE ITEM
-// =========================
+/*
+ * SOFT REMOVE ITEM
+ *
+ * The item is deliberately NOT deleted.
+ *
+ * We preserve:
+ * - moderationStatus
+ * - removalReason
+ * - removedAt
+ * - removedBy
+ *
+ * The owner is also notified.
+ */
 
 const removeItem = async (req, res) => {
     try {
         const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({
+                message: 'A removal reason is required'
+            });
+        }
 
         const item = await Item.findById(id);
 
@@ -217,10 +244,65 @@ const removeItem = async (req, res) => {
             });
         }
 
-        await Item.findByIdAndDelete(id);
+        if (item.moderationStatus === 'REMOVED') {
+            return res.status(400).json({
+                message: 'This item has already been removed'
+            });
+        }
+
+        /*
+         * Soft removal.
+         */
+        item.moderationStatus = 'REMOVED';
+
+        item.removalReason = reason.trim();
+
+        item.removedAt = new Date();
+
+        item.removedBy = req.user;
+
+        /*
+         * Make the item unavailable as well.
+         *
+         * This prevents it from being borrowed even if
+         * another part of the system accesses it directly.
+         */
+        item.availability = false;
+
+        await item.save();
+
+
+        /*
+         * Notify the owner.
+         */
+        await Notification.create({
+            recipient: item.owner,
+            type: 'ITEM_REMOVED',
+            title: 'Your equipment was removed',
+            message:
+                `Your listing "${item.name}" was removed by an administrator. ` +
+                `Reason: ${item.removalReason}`,
+            relatedItem: item._id
+        });
+
+
+        /*
+         * Return the updated item so the admin frontend
+         * can immediately update its table/card.
+         */
+        const updatedItem = await Item.findById(item._id)
+            .populate(
+                'owner',
+                'name email avatar rating reliabilityScore'
+            )
+            .populate(
+                'removedBy',
+                'name email'
+            );
 
         res.json({
-            message: 'Item removed successfully'
+            message: 'Item removed successfully',
+            item: updatedItem
         });
 
     } catch (error) {
@@ -232,20 +314,32 @@ const removeItem = async (req, res) => {
 };
 
 
-// =========================
-// GET ALL BORROWINGS
-// =========================
+/*
+ * -----------------------------------------
+ * BORROWINGS
+ * -----------------------------------------
+ */
 
 const getAllBorrowings = async (req, res) => {
     try {
         const borrowings = await Borrowing.find()
-            .populate('item', 'name category')
-            .populate('borrower', 'name email')
-            .populate('lender', 'name email')
-            .sort({ createdAt: -1 });
+            .populate(
+                'item',
+                'name category rentalType rentalPricePerDay'
+            )
+            .populate(
+                'borrower',
+                'name email'
+            )
+            .populate(
+                'lender',
+                'name email'
+            )
+            .sort({
+                createdAt: -1
+            });
 
         res.json({
-            count: borrowings.length,
             borrowings
         });
 
@@ -258,21 +352,32 @@ const getAllBorrowings = async (req, res) => {
 };
 
 
-// =========================
-// GET ALL DISPUTES
-// =========================
+/*
+ * -----------------------------------------
+ * DISPUTES
+ * -----------------------------------------
+ */
 
 const getAllDisputes = async (req, res) => {
     try {
         const disputes = await Dispute.find()
-            .populate('borrowing')
-            .populate('item', 'name category')
-            .populate('reportedBy', 'name email')
-            .populate('againstUser', 'name email')
-            .sort({ createdAt: -1 });
+            .populate(
+                'reportedBy',
+                'name email'
+            )
+            .populate(
+                'againstUser',
+                'name email'
+            )
+            .populate(
+                'borrowing',
+                'item borrower lender startDate endDate status'
+            )
+            .sort({
+                createdAt: -1
+            });
 
         res.json({
-            count: disputes.length,
             disputes
         });
 
@@ -285,14 +390,13 @@ const getAllDisputes = async (req, res) => {
 };
 
 
-// =========================
-// UPDATE DISPUTE
-// =========================
-
 const updateDispute = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, resolution } = req.body;
+        const {
+            status,
+            resolution
+        } = req.body;
 
         const allowedStatuses = [
             'OPEN',
@@ -301,7 +405,10 @@ const updateDispute = async (req, res) => {
             'REJECTED'
         ];
 
-        if (!status || !allowedStatuses.includes(status)) {
+        if (
+            status &&
+            !allowedStatuses.includes(status)
+        ) {
             return res.status(400).json({
                 message: 'Invalid dispute status'
             });
@@ -316,30 +423,48 @@ const updateDispute = async (req, res) => {
         }
 
         if (
-            (dispute.status === 'RESOLVED' ||
-                dispute.status === 'REJECTED') &&
-            dispute.status !== status
+            dispute.status === 'RESOLVED' ||
+            dispute.status === 'REJECTED'
         ) {
             return res.status(400).json({
-                message: 'Closed disputes cannot be reopened or changed'
+                message: 'This dispute is already closed'
             });
         }
 
-        dispute.status = status;
-
-        if (resolution !== undefined) {
-            dispute.resolution = resolution;
+        if (status) {
+            dispute.status = status;
         }
 
-        if (status === 'RESOLVED' || status === 'REJECTED') {
+        if (resolution !== undefined) {
+            dispute.resolution = resolution.trim();
+        }
+
+        if (
+            status === 'RESOLVED' ||
+            status === 'REJECTED'
+        ) {
             dispute.resolvedAt = new Date();
         }
 
         await dispute.save();
 
+        const updatedDispute = await Dispute.findById(dispute._id)
+            .populate(
+                'reportedBy',
+                'name email'
+            )
+            .populate(
+                'againstUser',
+                'name email'
+            )
+            .populate(
+                'borrowing',
+                'item borrower lender startDate endDate status'
+            );
+
         res.json({
             message: 'Dispute updated successfully',
-            dispute
+            dispute: updatedDispute
         });
 
     } catch (error) {

@@ -9,11 +9,18 @@ import {
     useSearchParams
 } from 'react-router-dom';
 
+import {
+    LocateFixed
+} from 'lucide-react';
+
 import api from '../services/api';
 import './Browse.css';
 
 function Browse() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [
+        searchParams,
+        setSearchParams
+    ] = useSearchParams();
 
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,129 +30,193 @@ function Browse() {
         searchParams.get('search') || ''
     );
 
-    const [category, setCategory] = useState(
-        searchParams.get('category') || ''
+    const [category, setCategory] =
+        useState(
+            searchParams.get('category') || ''
+        );
+
+    const [rentalType, setRentalType] =
+        useState(
+            searchParams.get('rentalType') || ''
+        );
+
+    const [condition, setCondition] =
+        useState(
+            searchParams.get('condition') || ''
+        );
+
+    const [minPrice, setMinPrice] =
+        useState(
+            searchParams.get('minPrice') || ''
+        );
+
+    const [maxPrice, setMaxPrice] =
+        useState(
+            searchParams.get('maxPrice') || ''
+        );
+
+    const [radius, setRadius] =
+        useState(
+            searchParams.get('radius') || ''
+        );
+
+    const [latitude, setLatitude] =
+        useState(
+            searchParams.get('lat') ||
+            searchParams.get('latitude') ||
+            ''
+        );
+
+    const [longitude, setLongitude] =
+        useState(
+            searchParams.get('lng') ||
+            searchParams.get('longitude') ||
+            ''
+        );
+
+    const [locationLoading, setLocationLoading] =
+        useState(false);
+
+    const [
+        locationMessage,
+        setLocationMessage
+    ] = useState('');
+
+    const fetchItems = useCallback(
+        async () => {
+            try {
+                setLoading(true);
+                setError('');
+
+                const params = {};
+
+                const searchValue =
+                    searchParams.get(
+                        'search'
+                    );
+
+                const categoryValue =
+                    searchParams.get(
+                        'category'
+                    );
+
+                const rentalTypeValue =
+                    searchParams.get(
+                        'rentalType'
+                    );
+
+                const conditionValue =
+                    searchParams.get(
+                        'condition'
+                    );
+
+                const minPriceValue =
+                    searchParams.get(
+                        'minPrice'
+                    );
+
+                const maxPriceValue =
+                    searchParams.get(
+                        'maxPrice'
+                    );
+
+                const radiusValue =
+                    searchParams.get(
+                        'radius'
+                    );
+
+                const latValue =
+                    searchParams.get(
+                        'lat'
+                    ) ||
+                    searchParams.get(
+                        'latitude'
+                    );
+
+                const lngValue =
+                    searchParams.get(
+                        'lng'
+                    ) ||
+                    searchParams.get(
+                        'longitude'
+                    );
+
+                if (searchValue) {
+                    params.search =
+                        searchValue;
+                }
+
+                if (categoryValue) {
+                    params.category =
+                        categoryValue;
+                }
+
+                if (rentalTypeValue) {
+                    params.rentalType =
+                        rentalTypeValue;
+                }
+
+                if (conditionValue) {
+                    params.condition =
+                        conditionValue;
+                }
+
+                if (minPriceValue) {
+                    params.minPrice =
+                        minPriceValue;
+                }
+
+                if (maxPriceValue) {
+                    params.maxPrice =
+                        maxPriceValue;
+                }
+
+                if (
+                    radiusValue &&
+                    latValue &&
+                    lngValue
+                ) {
+                    params.radius =
+                        radiusValue;
+
+                    params.latitude =
+                        latValue;
+
+                    params.longitude =
+                        lngValue;
+                }
+
+                const response =
+                    await api.get(
+                        '/items',
+                        { params }
+                    );
+
+                const fetchedItems =
+                    response.data.items ||
+                    response.data ||
+                    [];
+
+                setItems(
+                    fetchedItems
+                );
+
+            } catch (err) {
+                console.error(err);
+
+                setError(
+                    err.response?.data
+                        ?.message ||
+                    'Unable to load equipment right now.'
+                );
+
+            } finally {
+                setLoading(false);
+            }
+        },
+        [searchParams]
     );
 
-    const [rentalType, setRentalType] = useState(
-        searchParams.get('rentalType') || ''
-    );
-
-    const [condition, setCondition] = useState(
-        searchParams.get('condition') || ''
-    );
-
-    const [minPrice, setMinPrice] = useState(
-        searchParams.get('minPrice') || ''
-    );
-
-    const [maxPrice, setMaxPrice] = useState(
-        searchParams.get('maxPrice') || ''
-    );
-
-    /*
-     * Fetch equipment.
-     *
-     * This function is also used by the "Try again" button.
-     */
-    const fetchItems = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError('');
-
-            const params = {};
-
-            const searchValue =
-                searchParams.get('search');
-
-            const categoryValue =
-                searchParams.get('category');
-
-            const rentalTypeValue =
-                searchParams.get('rentalType');
-
-            const conditionValue =
-                searchParams.get('condition');
-
-            const minPriceValue =
-                searchParams.get('minPrice');
-
-            const maxPriceValue =
-                searchParams.get('maxPrice');
-
-            const radiusValue =
-                searchParams.get('radius');
-
-            const latValue =
-                searchParams.get('lat');
-
-            const lngValue =
-                searchParams.get('lng');
-
-            if (searchValue) {
-                params.search = searchValue;
-            }
-
-            if (categoryValue) {
-                params.category = categoryValue;
-            }
-
-            if (rentalTypeValue) {
-                params.rentalType = rentalTypeValue;
-            }
-
-            if (conditionValue) {
-                params.condition = conditionValue;
-            }
-
-            if (minPriceValue) {
-                params.minPrice = minPriceValue;
-            }
-
-            if (maxPriceValue) {
-                params.maxPrice = maxPriceValue;
-            }
-
-            if (
-                radiusValue &&
-                latValue &&
-                lngValue
-            ) {
-                params.radius = radiusValue;
-                params.lat = latValue;
-                params.lng = lngValue;
-            }
-
-            const response = await api.get('/items', {
-                params
-            });
-
-            const fetchedItems =
-                response.data.items ||
-                response.data ||
-                [];
-
-            setItems(fetchedItems);
-
-        } catch (err) {
-            console.error(err);
-
-            setError(
-                err.response?.data?.message ||
-                'Unable to load equipment right now.'
-            );
-
-        } finally {
-            setLoading(false);
-        }
-    }, [searchParams]);
-
-    /*
-     * Load equipment whenever the URL filters change.
-     *
-     * The API request is started inside the effect and
-     * state is updated after the asynchronous operation.
-     */
     useEffect(() => {
         let cancelled = false;
 
@@ -157,54 +228,84 @@ function Browse() {
                 const params = {};
 
                 const searchValue =
-                    searchParams.get('search');
+                    searchParams.get(
+                        'search'
+                    );
 
                 const categoryValue =
-                    searchParams.get('category');
+                    searchParams.get(
+                        'category'
+                    );
 
                 const rentalTypeValue =
-                    searchParams.get('rentalType');
+                    searchParams.get(
+                        'rentalType'
+                    );
 
                 const conditionValue =
-                    searchParams.get('condition');
+                    searchParams.get(
+                        'condition'
+                    );
 
                 const minPriceValue =
-                    searchParams.get('minPrice');
+                    searchParams.get(
+                        'minPrice'
+                    );
 
                 const maxPriceValue =
-                    searchParams.get('maxPrice');
+                    searchParams.get(
+                        'maxPrice'
+                    );
 
                 const radiusValue =
-                    searchParams.get('radius');
+                    searchParams.get(
+                        'radius'
+                    );
 
                 const latValue =
-                    searchParams.get('lat');
+                    searchParams.get(
+                        'lat'
+                    ) ||
+                    searchParams.get(
+                        'latitude'
+                    );
 
                 const lngValue =
-                    searchParams.get('lng');
+                    searchParams.get(
+                        'lng'
+                    ) ||
+                    searchParams.get(
+                        'longitude'
+                    );
 
                 if (searchValue) {
-                    params.search = searchValue;
+                    params.search =
+                        searchValue;
                 }
 
                 if (categoryValue) {
-                    params.category = categoryValue;
+                    params.category =
+                        categoryValue;
                 }
 
                 if (rentalTypeValue) {
-                    params.rentalType = rentalTypeValue;
+                    params.rentalType =
+                        rentalTypeValue;
                 }
 
                 if (conditionValue) {
-                    params.condition = conditionValue;
+                    params.condition =
+                        conditionValue;
                 }
 
                 if (minPriceValue) {
-                    params.minPrice = minPriceValue;
+                    params.minPrice =
+                        minPriceValue;
                 }
 
                 if (maxPriceValue) {
-                    params.maxPrice = maxPriceValue;
+                    params.maxPrice =
+                        maxPriceValue;
                 }
 
                 if (
@@ -212,14 +313,21 @@ function Browse() {
                     latValue &&
                     lngValue
                 ) {
-                    params.radius = radiusValue;
-                    params.lat = latValue;
-                    params.lng = lngValue;
+                    params.radius =
+                        radiusValue;
+
+                    params.latitude =
+                        latValue;
+
+                    params.longitude =
+                        lngValue;
                 }
 
-                const response = await api.get('/items', {
-                    params
-                });
+                const response =
+                    await api.get(
+                        '/items',
+                        { params }
+                    );
 
                 if (cancelled) {
                     return;
@@ -230,7 +338,9 @@ function Browse() {
                     response.data ||
                     [];
 
-                setItems(fetchedItems);
+                setItems(
+                    fetchedItems
+                );
 
             } catch (err) {
                 if (cancelled) {
@@ -240,7 +350,8 @@ function Browse() {
                 console.error(err);
 
                 setError(
-                    err.response?.data?.message ||
+                    err.response?.data
+                        ?.message ||
                     'Unable to load equipment right now.'
                 );
 
@@ -258,33 +369,105 @@ function Browse() {
         };
     }, [searchParams]);
 
-    const handleSearch = (event) => {
+    const useCurrentLocation = () => {
+        if (
+            !navigator.geolocation
+        ) {
+            setLocationMessage(
+                'Location services are not supported by this browser.'
+            );
+            return;
+        }
+
+        setLocationLoading(true);
+        setLocationMessage('');
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat =
+                    position.coords.latitude;
+
+                const lng =
+                    position.coords.longitude;
+
+                setLatitude(
+                    lat.toFixed(6)
+                );
+
+                setLongitude(
+                    lng.toFixed(6)
+                );
+
+                if (!radius) {
+                    setRadius('5');
+                }
+
+                setLocationMessage(
+                    'Current location added.'
+                );
+
+                setLocationLoading(false);
+            },
+            () => {
+                setLocationMessage(
+                    'Unable to access your location. You can enter latitude and longitude manually.'
+                );
+
+                setLocationLoading(false);
+            }
+        );
+    };
+
+    const handleSearch = (
+        event
+    ) => {
         event.preventDefault();
 
         const params = {};
 
         if (search.trim()) {
-            params.search = search.trim();
+            params.search =
+                search.trim();
         }
 
         if (category) {
-            params.category = category;
+            params.category =
+                category;
         }
 
         if (rentalType) {
-            params.rentalType = rentalType;
+            params.rentalType =
+                rentalType;
         }
 
         if (condition) {
-            params.condition = condition;
+            params.condition =
+                condition;
         }
 
         if (minPrice) {
-            params.minPrice = minPrice;
+            params.minPrice =
+                minPrice;
         }
 
         if (maxPrice) {
-            params.maxPrice = maxPrice;
+            params.maxPrice =
+                maxPrice;
+        }
+
+        if (
+            radius &&
+            latitude &&
+            longitude
+        ) {
+            params.radius =
+                radius;
+
+            params.lat =
+                latitude;
+
+            params.lng =
+                longitude;
         }
 
         setSearchParams(params);
@@ -297,18 +480,29 @@ function Browse() {
         setCondition('');
         setMinPrice('');
         setMaxPrice('');
+        setRadius('');
+        setLatitude('');
+        setLongitude('');
+        setLocationMessage('');
 
         setSearchParams({});
     };
 
-    const formatPrice = (item) => {
-        if (item.rentalType === 'FREE') {
+    const formatPrice = (
+        item
+    ) => {
+        if (
+            item.rentalType ===
+            'FREE'
+        ) {
             return 'Free';
         }
 
         if (
-            item.rentalPricePerDay !== undefined &&
-            item.rentalPricePerDay !== null
+            item.rentalPricePerDay !==
+                undefined &&
+            item.rentalPricePerDay !==
+                null
         ) {
             return `₹${item.rentalPricePerDay}/day`;
         }
@@ -316,20 +510,29 @@ function Browse() {
         return 'Price unavailable';
     };
 
-    const formatCondition = (value) => {
+    const formatCondition = (
+        value
+    ) => {
         if (!value) {
             return '';
         }
 
         return value
             .toLowerCase()
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, (letter) =>
-                letter.toUpperCase()
+            .replace(
+                /_/g,
+                ' '
+            )
+            .replace(
+                /\b\w/g,
+                (letter) =>
+                    letter.toUpperCase()
             );
     };
 
-    const getImage = (item) => {
+    const getImage = (
+        item
+    ) => {
         if (
             item.photos &&
             item.photos.length > 0
@@ -341,7 +544,6 @@ function Browse() {
     };
 
     return (
-
         <main className="browse-page">
 
             <section className="browse-header">
@@ -390,15 +592,22 @@ function Browse() {
 
                         <button
                             type="button"
-                            onClick={clearFilters}
+                            onClick={
+                                clearFilters
+                            }
                         >
                             Clear all
                         </button>
                     </div>
 
-                    <form onSubmit={handleSearch}>
+                    <form
+                        onSubmit={
+                            handleSearch
+                        }
+                    >
 
                         <div className="filter-group">
+
                             <label htmlFor="search">
                                 Search
                             </label>
@@ -408,13 +617,20 @@ function Browse() {
                                 type="text"
                                 placeholder="Drill, ladder, tools..."
                                 value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
+                                onChange={(
+                                    event
+                                ) =>
+                                    setSearch(
+                                        event.target
+                                            .value
+                                    )
                                 }
                             />
+
                         </div>
 
                         <div className="filter-group">
+
                             <label htmlFor="category">
                                 Category
                             </label>
@@ -422,8 +638,13 @@ function Browse() {
                             <select
                                 id="category"
                                 value={category}
-                                onChange={(event) =>
-                                    setCategory(event.target.value)
+                                onChange={(
+                                    event
+                                ) =>
+                                    setCategory(
+                                        event.target
+                                            .value
+                                    )
                                 }
                             >
                                 <option value="">
@@ -446,9 +667,11 @@ function Browse() {
                                     Everyday Tools
                                 </option>
                             </select>
+
                         </div>
 
                         <div className="filter-group">
+
                             <label htmlFor="rentalType">
                                 Rental type
                             </label>
@@ -456,8 +679,13 @@ function Browse() {
                             <select
                                 id="rentalType"
                                 value={rentalType}
-                                onChange={(event) =>
-                                    setRentalType(event.target.value)
+                                onChange={(
+                                    event
+                                ) =>
+                                    setRentalType(
+                                        event.target
+                                            .value
+                                    )
                                 }
                             >
                                 <option value="">
@@ -472,9 +700,11 @@ function Browse() {
                                     Paid
                                 </option>
                             </select>
+
                         </div>
 
                         <div className="filter-group">
+
                             <label htmlFor="condition">
                                 Condition
                             </label>
@@ -482,8 +712,13 @@ function Browse() {
                             <select
                                 id="condition"
                                 value={condition}
-                                onChange={(event) =>
-                                    setCondition(event.target.value)
+                                onChange={(
+                                    event
+                                ) =>
+                                    setCondition(
+                                        event.target
+                                            .value
+                                    )
                                 }
                             >
                                 <option value="">
@@ -506,6 +741,7 @@ function Browse() {
                                     Poor
                                 </option>
                             </select>
+
                         </div>
 
                         <div className="filter-group">
@@ -521,9 +757,12 @@ function Browse() {
                                     min="0"
                                     placeholder="Min"
                                     value={minPrice}
-                                    onChange={(event) =>
+                                    onChange={(
+                                        event
+                                    ) =>
                                         setMinPrice(
-                                            event.target.value
+                                            event.target
+                                                .value
                                         )
                                     }
                                 />
@@ -537,14 +776,150 @@ function Browse() {
                                     min="0"
                                     placeholder="Max"
                                     value={maxPrice}
-                                    onChange={(event) =>
+                                    onChange={(
+                                        event
+                                    ) =>
                                         setMaxPrice(
-                                            event.target.value
+                                            event.target
+                                                .value
                                         )
                                     }
                                 />
 
                             </div>
+
+                        </div>
+
+                        <div className="filter-group">
+
+                            <label htmlFor="radius">
+                                Search distance
+                            </label>
+
+                            <select
+                                id="radius"
+                                value={radius}
+                                onChange={(
+                                    event
+                                ) =>
+                                    setRadius(
+                                        event.target
+                                            .value
+                                    )
+                                }
+                            >
+                                <option value="">
+                                    No distance filter
+                                </option>
+
+                                <option value="1">
+                                    Within 1 km
+                                </option>
+
+                                <option value="2">
+                                    Within 2 km
+                                </option>
+
+                                <option value="5">
+                                    Within 5 km
+                                </option>
+
+                                <option value="10">
+                                    Within 10 km
+                                </option>
+
+                                <option value="25">
+                                    Within 25 km
+                                </option>
+
+                                <option value="50">
+                                    Within 50 km
+                                </option>
+                            </select>
+
+                        </div>
+
+                        <div className="filter-group">
+
+                            <label>
+                                Your location
+                            </label>
+
+                            <button
+                                type="button"
+                                className="location-button"
+                                onClick={
+                                    useCurrentLocation
+                                }
+                                disabled={
+                                    locationLoading
+                                }
+                            >
+                                <LocateFixed
+                                    size={15}
+                                />
+
+                                {locationLoading
+                                    ? 'Getting location...'
+                                    : 'Use my current location'}
+                            </button>
+
+                            <div
+                                className="price-inputs"
+                                style={{
+                                    marginTop:
+                                        '10px'
+                                }}
+                            >
+                                <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="Latitude"
+                                    value={
+                                        latitude
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setLatitude(
+                                            event.target
+                                                .value
+                                        )
+                                    }
+                                />
+
+                                <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="Longitude"
+                                    value={
+                                        longitude
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setLongitude(
+                                            event.target
+                                                .value
+                                        )
+                                    }
+                                />
+                            </div>
+
+                            {locationMessage && (
+                                <p
+                                    style={{
+                                        marginTop:
+                                            '8px',
+                                        fontSize:
+                                            '12px'
+                                    }}
+                                >
+                                    {
+                                        locationMessage
+                                    }
+                                </p>
+                            )}
 
                         </div>
 
@@ -564,6 +939,7 @@ function Browse() {
                     <div className="equipment-toolbar">
 
                         <div>
+
                             <span className="toolbar-label">
                                 AVAILABLE NOW
                             </span>
@@ -571,6 +947,7 @@ function Browse() {
                             <h2>
                                 Equipment around you
                             </h2>
+
                         </div>
 
                         <span className="result-count">
@@ -582,7 +959,7 @@ function Browse() {
                     {loading && (
                         <div className="browse-message">
 
-                            <div className="loading-spinner"></div>
+                            <div className="loading-spinner" />
 
                             <p>
                                 Finding equipment near you...
@@ -591,26 +968,29 @@ function Browse() {
                         </div>
                     )}
 
-                    {!loading && error && (
-                        <div className="browse-message error-message">
+                    {!loading &&
+                        error && (
+                            <div className="browse-message error-message">
 
-                            <h3>
-                                Something went wrong
-                            </h3>
+                                <h3>
+                                    Something went wrong
+                                </h3>
 
-                            <p>
-                                {error}
-                            </p>
+                                <p>
+                                    {error}
+                                </p>
 
-                            <button
-                                type="button"
-                                onClick={fetchItems}
-                            >
-                                Try again
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={
+                                        fetchItems
+                                    }
+                                >
+                                    Try again
+                                </button>
 
-                        </div>
-                    )}
+                            </div>
+                        )}
 
                     {!loading &&
                         !error &&
@@ -632,7 +1012,9 @@ function Browse() {
 
                                 <button
                                     type="button"
-                                    onClick={clearFilters}
+                                    onClick={
+                                        clearFilters
+                                    }
                                 >
                                     Clear filters
                                 </button>
@@ -646,77 +1028,97 @@ function Browse() {
 
                             <div className="equipment-grid">
 
-                                {items.map((item) => {
+                                {items.map(
+                                    (item) => {
 
-                                    const image =
-                                        getImage(item);
+                                        const image =
+                                            getImage(
+                                                item
+                                            );
 
-                                    return (
-                                        <Link
-                                            to={`/items/${item._id}`}
-                                            className="equipment-card"
-                                            key={item._id}
-                                        >
+                                        return (
+                                            <Link
+                                                to={`/items/${item._id}`}
+                                                className="equipment-card"
+                                                key={
+                                                    item._id
+                                                }
+                                            >
 
-                                            <div className="equipment-image">
+                                                <div className="equipment-image">
 
-                                                {image ? (
-                                                    <img
-                                                        src={image}
-                                                        alt={item.name}
-                                                    />
-                                                ) : (
-                                                    <div className="image-placeholder">
+                                                    {image ? (
+                                                        <img
+                                                            src={
+                                                                image
+                                                            }
+                                                            alt={
+                                                                item.name
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <div className="image-placeholder">
 
-                                                        <span>
-                                                            {item.name
-                                                                ?.charAt(0)
-                                                                ?.toUpperCase()}
-                                                        </span>
+                                                            <span>
+                                                                {item.name
+                                                                    ?.charAt(
+                                                                        0
+                                                                    )
+                                                                    ?.toUpperCase()}
+                                                            </span>
 
-                                                    </div>
-                                                )}
-
-                                                <span className="condition-badge">
-                                                    {formatCondition(
-                                                        item.condition
+                                                        </div>
                                                     )}
-                                                </span>
 
-                                            </div>
-
-                                            <div className="equipment-card-body">
-
-                                                <span className="equipment-category">
-                                                    {item.category}
-                                                </span>
-
-                                                <h3>
-                                                    {item.name}
-                                                </h3>
-
-                                                <p className="equipment-description">
-                                                    {item.description ||
-                                                        'No description available.'}
-                                                </p>
-
-                                                <div className="equipment-card-footer">
-
-                                                    <strong>
-                                                        {formatPrice(item)}
-                                                    </strong>
-
-                                                    <span>
-                                                        View details →
+                                                    <span className="condition-badge">
+                                                        {formatCondition(
+                                                            item.condition
+                                                        )}
                                                     </span>
 
                                                 </div>
 
-                                            </div>
+                                                <div className="equipment-card-body">
 
-                                        </Link>
-                                    );
-                                })}
+                                                    <span className="equipment-category">
+                                                        {
+                                                            item.category
+                                                        }
+                                                    </span>
+
+                                                    <h3>
+                                                        {
+                                                            item.name
+                                                        }
+                                                    </h3>
+
+                                                    <p className="equipment-description">
+                                                        {
+                                                            item.description ||
+                                                            'No description available.'
+                                                        }
+                                                    </p>
+
+                                                    <div className="equipment-card-footer">
+
+                                                        <strong>
+                                                            {formatPrice(
+                                                                item
+                                                            )}
+                                                        </strong>
+
+                                                        <span>
+                                                            View details →
+                                                        </span>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </Link>
+                                        );
+                                    }
+                                )}
 
                             </div>
                         )}

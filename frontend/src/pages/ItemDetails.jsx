@@ -426,7 +426,7 @@ function ItemDetails() {
                         </div>
 
                         <Link
-                            to="/dashboard"
+                            to={`/items/${item._id}/edit`}
                             className="item-owner-panel-button"
                         >
                             Manage listing

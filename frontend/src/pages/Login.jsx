@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff } from 'lucide-react';
+import {
+    Eye,
+    EyeOff,
+    MapPin,
+    ArrowRight
+} from 'lucide-react';
+
 import { useAuth } from '../context/useAuth';
+
+import './Login.css';
+
 function Login() {
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -16,13 +25,15 @@ function Login() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const from = location.state?.from?.pathname || '/dashboard';
+    const from =
+        location.state?.from?.pathname ||
+        '/dashboard';
 
     const handleChange = (event) => {
-        setFormData({
-            ...formData,
+        setFormData((current) => ({
+            ...current,
             [event.target.name]: event.target.value
-        });
+        }));
     };
 
     const handleSubmit = async (event) => {
@@ -33,15 +44,17 @@ function Login() {
 
         try {
             await login(
-                formData.email,
+                formData.email.trim(),
                 formData.password
             );
 
-            navigate(from, { replace: true });
-        } catch (error) {
+            navigate(from, {
+                replace: true
+            });
+        } catch (err) {
             setError(
-                error.response?.data?.message ||
-                'Unable to log in. Please try again.'
+                err.response?.data?.message ||
+                'Unable to log in. Please check your details and try again.'
             );
         } finally {
             setLoading(false);
@@ -49,71 +62,107 @@ function Login() {
     };
 
     return (
-        <main className="min-h-[calc(100vh-72px)] bg-slate-50 px-5 py-12 sm:px-8">
-            <div className="mx-auto grid max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:grid-cols-2">
+        <main className="login-page">
 
-                {/* Left visual section */}
-                <div className="hidden bg-blue-600 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-                    <div>
-                        <div className="mb-8 inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-medium backdrop-blur">
-                            Local sharing, made simple
+            <div className="login-layout">
+
+                {/* LEFT SIDE */}
+                <section className="login-left">
+
+                    <div className="login-left-glow" />
+
+                    <div className="login-left-content">
+
+                        <div className="login-location-badge">
+                            <MapPin size={14} />
+                            <span>
+                                Equipment sharing, close to home
+                            </span>
                         </div>
 
-                        <h1 className="max-w-md text-5xl font-semibold leading-tight tracking-tight">
-                            Borrow what you need.
+                        <h1 className="login-main-heading">
+                            Borrow what
                             <br />
-                            Share what you have.
+                            you need.
+                            <br />
+                            <em>Share what you have.</em>
                         </h1>
 
-                        <p className="mt-6 max-w-md text-base leading-7 text-blue-100">
-                            Find useful equipment around you, rent it from
-                            people nearby, and give your unused items a
-                            second life.
+                        <p className="login-description">
+                            Find useful equipment around you,
+                            borrow it from people nearby, and
+                            keep useful things moving through
+                            your community.
                         </p>
+
                     </div>
 
-                    <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                        <p className="text-sm leading-6 text-blue-50">
-                            From drills and ladders to everyday equipment,
-                            Lendr connects people in the same local
-                            community.
-                        </p>
+                    {/* Decorative cards */}
+                    <div className="login-decoration">
+
+                        <div className="login-decoration-card login-card-one" />
+
+                        <div className="login-decoration-card login-card-two" />
+
+                        <div className="login-decoration-card login-card-three" />
+
                     </div>
-                </div>
 
-                {/* Form */}
-                <div className="flex items-center justify-center p-7 sm:p-12 lg:p-16">
-                    <div className="w-full max-w-md">
+                    <div className="login-decoration-circle" />
 
-                        <div className="mb-8">
-                            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-blue-600">
-                                Welcome back
-                            </p>
+                </section>
 
-                            <h2 className="text-3xl font-semibold tracking-tight text-slate-950">
+
+                {/* RIGHT SIDE */}
+                <section className="login-right">
+
+                    <div className="login-form-container">
+
+                        {/* Logo */}
+                        <Link
+                            to="/"
+                            className="login-logo"
+                        >
+                            lendr<span>.</span>
+                        </Link>
+
+
+                        {/* Header */}
+                        <div className="login-header">
+
+                            <span className="login-eyebrow">
+                                YOUR LENDR SPACE
+                            </span>
+
+                            <h2>
                                 Sign in to Lendr
                             </h2>
 
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Access your listings, borrowings and requests.
+                            <p>
+                                Access your listings, borrowings
+                                and requests.
                             </p>
+
                         </div>
 
+
+                        {/* Error */}
                         {error && (
-                            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            <div className="login-error">
                                 {error}
                             </div>
                         )}
 
+
+                        {/* Form */}
                         <form
+                            className="login-form"
                             onSubmit={handleSubmit}
-                            className="space-y-5"
                         >
-                            <div>
-                                <label
-                                    htmlFor="email"
-                                    className="mb-2 block text-sm font-medium text-slate-700"
-                                >
+
+                            <div className="login-field">
+
+                                <label htmlFor="email">
                                     Email address
                                 </label>
 
@@ -124,20 +173,21 @@ function Login() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="you@example.com"
+                                    autoComplete="email"
                                     required
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                                 />
+
                             </div>
 
-                            <div>
-                                <label
-                                    htmlFor="password"
-                                    className="mb-2 block text-sm font-medium text-slate-700"
-                                >
+
+                            <div className="login-field">
+
+                                <label htmlFor="password">
                                     Password
                                 </label>
 
-                                <div className="relative">
+                                <div className="login-password">
+
                                     <input
                                         id="password"
                                         name="password"
@@ -149,51 +199,85 @@ function Login() {
                                         value={formData.password}
                                         onChange={handleChange}
                                         placeholder="Enter your password"
+                                        autoComplete="current-password"
                                         required
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                                     />
 
                                     <button
                                         type="button"
+                                        className="login-password-toggle"
                                         onClick={() =>
-                                            setShowPassword(!showPassword)
+                                            setShowPassword(
+                                                (current) => !current
+                                            )
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                        aria-label={
+                                            showPassword
+                                                ? 'Hide password'
+                                                : 'Show password'
+                                        }
                                     >
                                         {showPassword ? (
-                                            <EyeOff size={18} />
+                                            <EyeOff size={17} />
                                         ) : (
-                                            <Eye size={18} />
+                                            <Eye size={17} />
                                         )}
                                     </button>
+
                                 </div>
+
                             </div>
+
 
                             <button
                                 type="submit"
+                                className="login-submit"
                                 disabled={loading}
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {loading
-                                    ? 'Signing in...'
-                                    : 'Sign in'}
 
-                                {!loading && <ArrowRight size={17} />}
+                                <span>
+                                    {loading
+                                        ? 'Signing in...'
+                                        : 'Sign in'}
+                                </span>
+
+                                {!loading && (
+                                    <ArrowRight size={17} />
+                                )}
+
                             </button>
+
                         </form>
 
-                        <p className="mt-7 text-center text-sm text-slate-500">
-                            Don't have an account?{' '}
-                            <Link
-                                to="/register"
-                                className="font-semibold text-blue-600 hover:text-blue-700"
-                            >
-                                Create one
+
+                        {/* Register */}
+                        <div className="login-register">
+
+                            <span>
+                                Don't have an account?
+                            </span>
+
+                            <Link to="/register">
+                                Get started
+                                <ArrowRight size={14} />
                             </Link>
+
+                        </div>
+
+
+                        {/* Footer */}
+                        <p className="login-footer">
+                            By signing in, you agree to use Lendr responsibly
+                            and respect the people and equipment in your
+                            community.
                         </p>
+
                     </div>
-                </div>
+
+                </section>
+
             </div>
+
         </main>
     );
 }

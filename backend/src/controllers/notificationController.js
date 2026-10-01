@@ -1,12 +1,17 @@
 const Notification = require('../models/Notification');
-const createNotification = require('../utils/createNotification');
+
+
+// ============================================
+// GET MY NOTIFICATIONS
+// ============================================
+
 const getMyNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({
             recipient: req.user
         })
-            .populate('sender', 'name')
-            .populate('borrowing')
+            .populate('relatedBorrowing')
+            .populate('relatedItem')
             .sort({ createdAt: -1 });
 
         res.json({
@@ -15,6 +20,11 @@ const getMyNotifications = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(
+            'Failed to fetch notifications:',
+            error.message
+        );
+
         res.status(500).json({
             message: 'Failed to fetch notifications',
             error: error.message
@@ -22,6 +32,10 @@ const getMyNotifications = async (req, res) => {
     }
 };
 
+
+// ============================================
+// MARK ONE NOTIFICATION AS READ
+// ============================================
 
 const markNotificationAsRead = async (req, res) => {
     try {
@@ -35,7 +49,7 @@ const markNotificationAsRead = async (req, res) => {
             });
         }
 
-        if (notification.recipient.toString() !== req.user) {
+        if (notification.recipient.toString() !== req.user.toString()) {
             return res.status(403).json({
                 message: 'You are not allowed to modify this notification'
             });
@@ -51,6 +65,11 @@ const markNotificationAsRead = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(
+            'Failed to update notification:',
+            error.message
+        );
+
         res.status(500).json({
             message: 'Failed to update notification',
             error: error.message
@@ -58,6 +77,10 @@ const markNotificationAsRead = async (req, res) => {
     }
 };
 
+
+// ============================================
+// MARK ALL NOTIFICATIONS AS READ
+// ============================================
 
 const markAllNotificationsAsRead = async (req, res) => {
     try {
@@ -67,7 +90,9 @@ const markAllNotificationsAsRead = async (req, res) => {
                 isRead: false
             },
             {
-                isRead: true
+                $set: {
+                    isRead: true
+                }
             }
         );
 
@@ -76,6 +101,11 @@ const markAllNotificationsAsRead = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(
+            'Failed to update notifications:',
+            error.message
+        );
+
         res.status(500).json({
             message: 'Failed to update notifications',
             error: error.message

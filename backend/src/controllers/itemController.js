@@ -1,6 +1,87 @@
 const Item = require('../models/Item');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
-// Create a new item
+
+const buildLocation = (location, latitude, longitude) => {
+    if (
+        latitude !== undefined &&
+        longitude !== undefined
+    ) {
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+
+        if (
+            Number.isNaN(lat) ||
+            Number.isNaN(lng)
+        ) {
+            return null;
+        }
+
+        if (
+            lat < -90 ||
+            lat > 90 ||
+            lng < -180 ||
+            lng > 180
+        ) {
+            return null;
+        }
+
+        return {
+            type: 'Point',
+            coordinates: [lng, lat]
+        };
+    }
+
+    if (location !== undefined) {
+        let parsedLocation = location;
+
+        if (typeof location === 'string') {
+            try {
+                parsedLocation = JSON.parse(location);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        if (
+            parsedLocation &&
+            parsedLocation.type === 'Point' &&
+            Array.isArray(parsedLocation.coordinates) &&
+            parsedLocation.coordinates.length === 2
+        ) {
+            const lng = Number(
+                parsedLocation.coordinates[0]
+            );
+
+            const lat = Number(
+                parsedLocation.coordinates[1]
+            );
+
+            if (
+                Number.isNaN(lat) ||
+                Number.isNaN(lng) ||
+                lat < -90 ||
+                lat > 90 ||
+                lng < -180 ||
+                lng > 180
+            ) {
+                return null;
+            }
+
+            return {
+                type: 'Point',
+                coordinates: [lng, lat]
+            };
+        }
+    }
+
+    return null;
+};
+
+
+// ---------------------------------------------
+// CREATE ITEM
+// ---------------------------------------------
+
 const createItem = async (req, res) => {
     try {
         const {
@@ -11,58 +92,39 @@ const createItem = async (req, res) => {
             rentalType,
             originalValue,
             rentalPricePerDay,
+            location,
             latitude,
             longitude
         } = req.body;
 
-        // Required fields
         if (
             !name ||
             !category ||
             !description ||
-            !condition ||
-            latitude === undefined ||
-            longitude === undefined
+            !condition
         ) {
             return res.status(400).json({
                 message:
-                    'Name, category, description, condition, latitude and longitude are required'
+                    'Name, category, description and condition are required'
             });
         }
 
-        // Convert coordinates to numbers
-        const lat = Number(latitude);
-        const lng = Number(longitude);
-
-        // Validate coordinates
-        if (
-            Number.isNaN(lat) ||
-            Number.isNaN(lng) ||
-            lat < -90 ||
-            lat > 90 ||
-            lng < -180 ||
-            lng > 180
-        ) {
-            return res.status(400).json({
-                message: 'Latitude or longitude is invalid'
-            });
-        }
-
-        // Validate rental type
         if (
             rentalType &&
             !['FREE', 'PAID'].includes(rentalType)
         ) {
             return res.status(400).json({
-                message: 'Rental type must be FREE or PAID'
+                message:
+                    'Rental type must be FREE or PAID'
             });
         }
 
-        // Paid items must have a rental price
         if (
             rentalType === 'PAID' &&
-            (!rentalPricePerDay ||
-                Number(rentalPricePerDay) <= 0)
+            (
+                rentalPricePerDay === undefined ||
+                Number(rentalPricePerDay) <= 0
+            )
         ) {
             return res.status(400).json({
                 message:
@@ -70,30 +132,51 @@ const createItem = async (req, res) => {
             });
         }
 
-        // Upload photos to Cloudinary
+        const itemLocation = buildLocation(
+            location,
+            latitude,
+            longitude
+        );
+
+        if (!itemLocation) {
+            return res.status(400).json({
+                message:
+                    'A valid location is required. Provide latitude and longitude or a valid GeoJSON location.'
+            });
+        }
+
         let photoUrls = [];
 
-        if (req.files && req.files.length > 0) {
+        if (
+            req.files &&
+            req.files.length > 0
+        ) {
             for (const file of req.files) {
-                const result = await uploadToCloudinary(
-                    file.buffer,
-                    'lendr/items'
-                );
+                const result =
+                    await uploadToCloudinary(
+                        file.buffer,
+                        'lendr/items'
+                    );
 
-                photoUrls.push(result.secure_url);
+                photoUrls.push(
+                    result.secure_url
+                );
             }
         }
 
-        // Create item
         const item = await Item.create({
             owner: req.user,
 
-            name,
-            category,
-            description,
+            name: name.trim(),
+
+            category: category.trim(),
+
+            description: description.trim(),
+
             condition,
 
-            rentalType: rentalType || 'FREE',
+            rentalType:
+                rentalType || 'FREE',
 
             originalValue:
                 Number(originalValue) || 0,
@@ -105,34 +188,45 @@ const createItem = async (req, res) => {
 
             availability: true,
 
-            location: {
-                type: 'Point',
-                coordinates: [lng, lat]
-            },
+            location: itemLocation,
 
             photos: photoUrls
         });
 
         res.status(201).json({
-            message: 'Item listed successfully',
+            message:
+                'Item listed successfully',
+
             item
         });
 
     } catch (error) {
+        console.error(
+            'Create item error:',
+            error
+        );
+
         res.status(500).json({
-            message: 'Failed to create item',
+            message:
+                'Failed to create item',
+
             error: error.message
         });
     }
 };
 
 
-// Get all items belonging to current user
+// ---------------------------------------------
+// GET MY ITEMS
+// ---------------------------------------------
+
 const getMyItems = async (req, res) => {
     try {
         const items = await Item.find({
             owner: req.user
-        }).sort({ createdAt: -1 });
+        }).sort({
+            createdAt: -1
+        });
 
         res.json({
             count: items.length,
@@ -141,27 +235,32 @@ const getMyItems = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            message: 'Failed to fetch your items',
+            message:
+                'Failed to fetch your items',
+
             error: error.message
         });
     }
 };
 
 
-// Get a single item
+// ---------------------------------------------
+// GET SINGLE ITEM
+// ---------------------------------------------
+
 const getItemById = async (req, res) => {
     try {
-        const item = await Item.findById(req.params.id)
-            .populate('owner', 'name email rating reliabilityScore');
+        const item =
+            await Item.findById(req.params.id)
+                .populate(
+                    'owner',
+                    'name email avatar rating reliabilityScore'
+                );
 
         if (!item) {
             return res.status(404).json({
-                message: 'Item not found'
-            });
-        }
-        if (item.moderationStatus === 'REMOVED') {
-            return res.status(404).json({
-                message: 'Item not found'
+                message:
+                    'Item not found'
             });
         }
 
@@ -171,28 +270,39 @@ const getItemById = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            message: 'Failed to fetch item',
+            message:
+                'Failed to fetch item',
+
             error: error.message
         });
     }
 };
 
 
-// Update an item
+// ---------------------------------------------
+// UPDATE ITEM
+// ---------------------------------------------
+
 const updateItem = async (req, res) => {
     try {
-        const item = await Item.findById(req.params.id);
+        const item =
+            await Item.findById(req.params.id);
 
         if (!item) {
             return res.status(404).json({
-                message: 'Item not found'
+                message:
+                    'Item not found'
             });
         }
 
-        // Only the owner can update the item
-        if (item.owner.toString() !== req.user) {
+        // Owner-only protection
+        if (
+            item.owner.toString() !==
+            req.user.toString()
+        ) {
             return res.status(403).json({
-                message: 'You are not allowed to update this item'
+                message:
+                    'You are not allowed to update this item'
             });
         }
 
@@ -205,109 +315,218 @@ const updateItem = async (req, res) => {
             originalValue,
             rentalPricePerDay,
             availability,
-            location
+            location,
+            latitude,
+            longitude
         } = req.body;
 
-        if (name !== undefined) item.name = name;
-        if (category !== undefined) item.category = category;
-        if (description !== undefined) item.description = description;
-        if (condition !== undefined) item.condition = condition;
-        if (originalValue !== undefined) {
-            item.originalValue = originalValue;
-        }
-        if (availability !== undefined) {
-            item.availability = availability;
-        }
-        if (location !== undefined) {
-            item.location = location;
+        if (
+            name !== undefined
+        ) {
+            item.name =
+                name.trim();
         }
 
-        if (rentalType !== undefined) {
-            if (!['FREE', 'PAID'].includes(rentalType)) {
+        if (
+            category !== undefined
+        ) {
+            item.category =
+                category.trim();
+        }
+
+        if (
+            description !== undefined
+        ) {
+            item.description =
+                description.trim();
+        }
+
+        if (
+            condition !== undefined
+        ) {
+            item.condition =
+                condition;
+        }
+
+        if (
+            originalValue !== undefined
+        ) {
+            item.originalValue =
+                Number(originalValue) || 0;
+        }
+
+        if (
+            availability !== undefined
+        ) {
+            item.availability =
+                availability === true ||
+                availability === 'true';
+        }
+
+        const locationWasProvided =
+            location !== undefined ||
+            latitude !== undefined ||
+            longitude !== undefined;
+
+        if (locationWasProvided) {
+            const updatedLocation =
+                buildLocation(
+                    location,
+                    latitude,
+                    longitude
+                );
+
+            if (!updatedLocation) {
                 return res.status(400).json({
-                    message: 'Rental type must be FREE or PAID'
+                    message:
+                        'A valid location is required'
                 });
             }
 
-            item.rentalType = rentalType;
+            item.location =
+                updatedLocation;
+        }
 
-            if (rentalType === 'FREE') {
-                item.rentalPricePerDay = 0;
+        if (
+            rentalType !== undefined
+        ) {
+            if (
+                !['FREE', 'PAID']
+                    .includes(rentalType)
+            ) {
+                return res.status(400).json({
+                    message:
+                        'Rental type must be FREE or PAID'
+                });
+            }
+
+            item.rentalType =
+                rentalType;
+
+            if (
+                rentalType === 'FREE'
+            ) {
+                item.rentalPricePerDay =
+                    0;
+
             } else {
                 if (
-                    rentalPricePerDay === undefined ||
-                    rentalPricePerDay <= 0
+                    rentalPricePerDay ===
+                        undefined ||
+                    Number(
+                        rentalPricePerDay
+                    ) <= 0
                 ) {
                     return res.status(400).json({
-                        message: 'Paid items must have a rental price greater than 0'
+                        message:
+                            'Paid items must have a rental price greater than 0'
                     });
                 }
 
-                item.rentalPricePerDay = rentalPricePerDay;
+                item.rentalPricePerDay =
+                    Number(
+                        rentalPricePerDay
+                    );
             }
-        } else if (rentalPricePerDay !== undefined) {
+
+        } else if (
+            rentalPricePerDay !==
+            undefined
+        ) {
             if (
-                item.rentalType === 'PAID' &&
-                rentalPricePerDay <= 0
+                item.rentalType ===
+                    'PAID' &&
+                Number(
+                    rentalPricePerDay
+                ) <= 0
             ) {
                 return res.status(400).json({
-                    message: 'Rental price must be greater than 0'
+                    message:
+                        'Rental price must be greater than 0'
                 });
             }
 
             item.rentalPricePerDay =
-                item.rentalType === 'PAID'
-                    ? rentalPricePerDay
+                item.rentalType ===
+                    'PAID'
+                    ? Number(
+                        rentalPricePerDay
+                    )
                     : 0;
         }
 
         await item.save();
 
         res.json({
-            message: 'Item updated successfully',
+            message:
+                'Item updated successfully',
+
             item
         });
 
     } catch (error) {
+        console.error(
+            'Update item error:',
+            error
+        );
+
         res.status(500).json({
-            message: 'Failed to update item',
+            message:
+                'Failed to update item',
+
             error: error.message
         });
     }
 };
 
 
-// Delete an item
+// ---------------------------------------------
+// DELETE ITEM
+// ---------------------------------------------
+
 const deleteItem = async (req, res) => {
     try {
-        const item = await Item.findById(req.params.id);
+        const item =
+            await Item.findById(req.params.id);
 
         if (!item) {
             return res.status(404).json({
-                message: 'Item not found'
+                message:
+                    'Item not found'
             });
         }
 
-        // Only the owner can delete the item
-        if (item.owner.toString() !== req.user) {
+        if (
+            item.owner.toString() !==
+            req.user.toString()
+        ) {
             return res.status(403).json({
-                message: 'You are not allowed to delete this item'
+                message:
+                    'You are not allowed to delete this item'
             });
         }
 
         await item.deleteOne();
 
         res.json({
-            message: 'Item deleted successfully'
+            message:
+                'Item deleted successfully'
         });
 
     } catch (error) {
         res.status(500).json({
-            message: 'Failed to delete item',
+            message:
+                'Failed to delete item',
+
             error: error.message
         });
     }
 };
+
+
+// ---------------------------------------------
+// SEARCH ITEMS / BROWSE
+// ---------------------------------------------
 
 const searchItems = async (req, res) => {
     try {
@@ -318,95 +537,199 @@ const searchItems = async (req, res) => {
             condition,
             minPrice,
             maxPrice,
+
+            // New names
             latitude,
             longitude,
+
+            // Existing frontend names
+            lat,
+            lng,
+
             radius
         } = req.query;
 
-        const filter = {
-            availability: true,
-            moderationStatus: 'ACTIVE'
+        /*
+         * Normal Browse should only show active,
+         * available listings.
+         *
+         * The $or also allows older backend-test
+         * records which were created before the
+         * availability field existed.
+         */
+        const query = {
+            moderationStatus: {
+                $ne: 'REMOVED'
+            },
+
+            $or: [
+                {
+                    availability: true
+                },
+                {
+                    availability: {
+                        $exists: false
+                    }
+                }
+            ]
         };
 
-        // Search by name, category or description
+        // Search text
         if (search) {
-            filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { category: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+            query.$and = [
+                {
+                    $or: [
+                        {
+                            name: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        },
+                        {
+                            category: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        },
+                        {
+                            description: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        }
+                    ]
+                }
             ];
         }
 
-        // Category filter
         if (category) {
-            filter.category = category;
+            query.category =
+                category;
         }
 
-        // Free / Paid filter
         if (rentalType) {
-            filter.rentalType = rentalType;
+            query.rentalType =
+                rentalType;
         }
 
-        // Condition filter
         if (condition) {
-            filter.condition = condition;
+            query.condition =
+                condition;
         }
 
-        // Price filters
-        if (minPrice !== undefined || maxPrice !== undefined) {
-            filter.rentalPricePerDay = {};
-
-            if (minPrice !== undefined) {
-                filter.rentalPricePerDay.$gte = Number(minPrice);
-            }
-
-            if (maxPrice !== undefined) {
-                filter.rentalPricePerDay.$lte = Number(maxPrice);
-            }
-        }
-
-        // Nearby search
-        if (latitude !== undefined && longitude !== undefined) {
-            const lat = Number(latitude);
-            const lng = Number(longitude);
-            const radiusKm = Number(radius) || 5;
+        if (
+            minPrice !== undefined ||
+            maxPrice !== undefined
+        ) {
+            query.rentalPricePerDay =
+                {};
 
             if (
-                Number.isNaN(lat) ||
-                Number.isNaN(lng) ||
+                minPrice !== undefined
+            ) {
+                query.rentalPricePerDay.$gte =
+                    Number(minPrice);
+            }
+
+            if (
+                maxPrice !== undefined
+            ) {
+                query.rentalPricePerDay.$lte =
+                    Number(maxPrice);
+            }
+        }
+
+        /*
+         * Accept both:
+         * latitude / longitude
+         *
+         * and:
+         * lat / lng
+         */
+        const latitudeValue =
+            latitude !== undefined
+                ? latitude
+                : lat;
+
+        const longitudeValue =
+            longitude !== undefined
+                ? longitude
+                : lng;
+
+        if (
+            latitudeValue !==
+                undefined &&
+            longitudeValue !==
+                undefined
+        ) {
+            const latitudeNumber =
+                Number(latitudeValue);
+
+            const longitudeNumber =
+                Number(longitudeValue);
+
+            const radiusKm =
+                Number(radius) || 5;
+
+            if (
+                Number.isNaN(
+                    latitudeNumber
+                ) ||
+                Number.isNaN(
+                    longitudeNumber
+                ) ||
                 Number.isNaN(radiusKm)
             ) {
                 return res.status(400).json({
-                    message: 'Latitude, longitude and radius must be valid numbers'
+                    message:
+                        'Latitude, longitude and radius must be valid numbers'
                 });
             }
 
-            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            if (
+                latitudeNumber < -90 ||
+                latitudeNumber > 90 ||
+                longitudeNumber < -180 ||
+                longitudeNumber > 180
+            ) {
                 return res.status(400).json({
-                    message: 'Invalid latitude or longitude'
+                    message:
+                        'Invalid latitude or longitude'
                 });
             }
 
             if (radiusKm <= 0) {
                 return res.status(400).json({
-                    message: 'Radius must be greater than 0'
+                    message:
+                        'Radius must be greater than 0'
                 });
             }
 
-            filter.location = {
+            query.location = {
                 $near: {
                     $geometry: {
                         type: 'Point',
-                        coordinates: [lng, lat]
+                        coordinates: [
+                            longitudeNumber,
+                            latitudeNumber
+                        ]
                     },
-                    $maxDistance: radiusKm * 1000
+
+                    $maxDistance:
+                        radiusKm * 1000
                 }
             };
         }
 
-        const items = await Item.find(filter)
-            .populate('owner', 'name rating reliabilityScore')
-            .sort({ createdAt: -1 });
+        const items =
+            await Item.find(query)
+                .populate(
+                    'owner',
+                    'name rating reliabilityScore avatar'
+                )
+                .sort({
+                    createdAt: -1
+                });
 
         res.json({
             count: items.length,
@@ -414,12 +737,21 @@ const searchItems = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(
+            'Search items error:',
+            error
+        );
+
         res.status(500).json({
-            message: 'Failed to search items',
+            message:
+                'Failed to search items',
+
             error: error.message
         });
     }
 };
+
+
 module.exports = {
     createItem,
     getMyItems,

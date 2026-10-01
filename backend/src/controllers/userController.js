@@ -1,7 +1,12 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
-// Get current user's profile
+
+// ============================================
+// GET CURRENT USER PROFILE
+// ============================================
+
 const getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user)
@@ -18,6 +23,11 @@ const getProfile = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(
+            'Failed to fetch profile:',
+            error.message
+        );
+
         res.status(500).json({
             message: 'Failed to fetch profile',
             error: error.message
@@ -26,10 +36,13 @@ const getProfile = async (req, res) => {
 };
 
 
-// Update current user's profile
+// ============================================
+// UPDATE PROFILE
+// ============================================
+
 const updateProfile = async (req, res) => {
     try {
-        const { name, avatar, location } = req.body;
+        const { name, location } = req.body;
 
         const user = await User.findById(req.user);
 
@@ -39,20 +52,36 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // Only allow these fields to be updated
+
+        // ----------------------------------------
+        // Update name
+        // ----------------------------------------
+
         if (name !== undefined) {
-            user.name = name;
+
+            const trimmedName = name.trim();
+
+            if (!trimmedName) {
+                return res.status(400).json({
+                    message: 'Name cannot be empty'
+                });
+            }
+
+            user.name = trimmedName;
         }
 
-        if (avatar !== undefined) {
-            user.avatar = avatar;
-        }
+
+        // ----------------------------------------
+        // Update location
+        // ----------------------------------------
 
         if (location !== undefined) {
             user.location = location;
         }
 
+
         await user.save();
+
 
         res.json({
             message: 'Profile updated successfully',
@@ -68,6 +97,11 @@ const updateProfile = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(
+            'Failed to update profile:',
+            error.message
+        );
+
         res.status(500).json({
             message: 'Failed to update profile',
             error: error.message
@@ -76,22 +110,19 @@ const updateProfile = async (req, res) => {
 };
 
 
-// Change password
-const changePassword = async (req, res) => {
+// ============================================
+// UPLOAD / UPDATE AVATAR
+// ============================================
+
+const updateAvatar = async (req, res) => {
     try {
-        const { currentPassword, newPassword } = req.body;
 
-        if (!currentPassword || !newPassword) {
+        if (!req.file) {
             return res.status(400).json({
-                message: 'Current password and new password are required'
+                message: 'Please select an image to upload'
             });
         }
 
-        if (newPassword.length < 6) {
-            return res.status(400).json({
-                message: 'New password must be at least 6 characters'
-            });
-        }
 
         const user = await User.findById(req.user);
 
@@ -101,10 +132,90 @@ const changePassword = async (req, res) => {
             });
         }
 
+
+        // Upload image to Cloudinary
+        const result = await uploadToCloudinary(
+            req.file.buffer,
+            'lendr/avatars'
+        );
+
+
+        // Save Cloudinary URL
+        user.avatar = result.secure_url;
+
+        await user.save();
+
+
+        res.json({
+            message: 'Profile photo updated successfully',
+            avatar: user.avatar,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+                location: user.location,
+                rating: user.rating,
+                reliabilityScore: user.reliabilityScore
+            }
+        });
+
+    } catch (error) {
+        console.error(
+            'Failed to upload avatar:',
+            error.message
+        );
+
+        res.status(500).json({
+            message: 'Failed to upload avatar',
+            error: error.message
+        });
+    }
+};
+
+
+// ============================================
+// CHANGE PASSWORD
+// ============================================
+
+const changePassword = async (req, res) => {
+    try {
+        const {
+            currentPassword,
+            newPassword
+        } = req.body;
+
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                message:
+                    'Current password and new password are required'
+            });
+        }
+
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                message:
+                    'New password must be at least 6 characters'
+            });
+        }
+
+
+        const user = await User.findById(req.user);
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+
+
         const passwordMatch = await bcrypt.compare(
             currentPassword,
             user.password
         );
+
 
         if (!passwordMatch) {
             return res.status(401).json({
@@ -112,15 +223,25 @@ const changePassword = async (req, res) => {
             });
         }
 
-        user.password = await bcrypt.hash(newPassword, 10);
+
+        user.password = await bcrypt.hash(
+            newPassword,
+            10
+        );
 
         await user.save();
+
 
         res.json({
             message: 'Password changed successfully'
         });
 
     } catch (error) {
+        console.error(
+            'Failed to change password:',
+            error.message
+        );
+
         res.status(500).json({
             message: 'Failed to change password',
             error: error.message
@@ -132,5 +253,6 @@ const changePassword = async (req, res) => {
 module.exports = {
     getProfile,
     updateProfile,
+    updateAvatar,
     changePassword
 };

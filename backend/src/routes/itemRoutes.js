@@ -9,26 +9,56 @@ const {
     searchItems
 } = require('../controllers/itemController');
 
-const protect = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const protect =
+    require('../middleware/authMiddleware');
+
+const upload =
+    require('../middleware/uploadMiddleware');
 
 const {
-    validateObjectId,
-    validateCoordinates
+    validateObjectId
 } = require('../middleware/validationMiddleware');
 
 const router = express.Router();
 
 
-// Search items
-router.get('/', searchItems);
+// ============================================
+// SEARCH / BROWSE
+// ============================================
+
+router.get(
+    '/',
+    searchItems
+);
 
 
-// Get user's own items
-router.get('/my-items', protect, getMyItems);
+// ============================================
+// MY ITEMS
+// ============================================
+
+router.get(
+    '/my-items',
+    protect,
+    getMyItems
+);
 
 
-// Get item by ID
+// ============================================
+// CREATE ITEM
+// ============================================
+
+router.post(
+    '/',
+    protect,
+    upload.array('photos', 5),
+    createItem
+);
+
+
+// ============================================
+// SINGLE ITEM
+// ============================================
+
 router.get(
     '/:id',
     validateObjectId('id'),
@@ -36,17 +66,10 @@ router.get(
 );
 
 
-// Create item
-router.post(
-    '/',
-    protect,
-    upload.array('photos', 5),
-    validateCoordinates,
-    createItem
-);
+// ============================================
+// UPDATE ITEM
+// ============================================
 
-
-// Update item
 router.put(
     '/:id',
     protect,
@@ -55,12 +78,16 @@ router.put(
 );
 
 
-// Delete item
+// ============================================
+// DELETE ITEM
+// ============================================
+
 router.delete(
     '/:id',
     protect,
     validateObjectId('id'),
     deleteItem
 );
+
 
 module.exports = router;
