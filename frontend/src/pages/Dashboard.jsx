@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import {
-    Link
+    Link,
+    Navigate
 } from 'react-router-dom';
 
 import {
@@ -16,7 +17,8 @@ import {
     CheckCircle2,
     AlertCircle,
     ArrowRight,
-    Pencil
+    Pencil,
+    Trash2
 } from 'lucide-react';
 
 import api from '../services/api';
@@ -44,6 +46,20 @@ function Dashboard() {
 
     const [error, setError] =
         useState('');
+
+    const [removingItemId, setRemovingItemId] =
+        useState(null);
+
+    const [removeMessage, setRemoveMessage] =
+        useState({
+            type: '',
+            text: ''
+        });
+
+
+    // ============================================
+    // LOAD DASHBOARD
+    // ============================================
 
     useEffect(() => {
         const loadDashboard =
@@ -130,6 +146,75 @@ function Dashboard() {
         loadDashboard();
     }, []);
 
+
+    // ============================================
+    // REMOVE EQUIPMENT
+    // ============================================
+
+    const handleRemoveItem = async (item) => {
+        if (!item?._id) {
+            return;
+        }
+
+        const confirmed =
+            window.confirm(
+                `Are you sure you want to permanently remove "${item.name}"?\n\nThis equipment listing will be permanently deleted and cannot be restored.`
+            );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setRemovingItemId(
+                item._id
+            );
+
+            setRemoveMessage({
+                type: '',
+                text: ''
+            });
+
+            await api.delete(
+                `/items/${item._id}`
+            );
+
+            setItems(
+                (currentItems) =>
+                    currentItems.filter(
+                        (currentItem) =>
+                            currentItem._id !==
+                            item._id
+                    )
+            );
+
+            setRemoveMessage({
+                type: 'success',
+                text:
+                    `"${item.name}" was permanently removed.`
+            });
+
+        } catch (err) {
+            console.error(
+                'Failed to remove equipment:',
+                err
+            );
+
+            setRemoveMessage({
+                type: 'error',
+                text:
+                    err.response?.data?.message ||
+                    'Unable to remove this equipment.'
+            });
+
+        } finally {
+            setRemovingItemId(
+                null
+            );
+        }
+    };
+
+
     const unreadNotifications =
         notifications.filter(
             (notification) =>
@@ -152,6 +237,7 @@ function Dashboard() {
                 'REQUESTED'
         ).length;
 
+
     const formatDate =
         (date) => {
             if (!date) {
@@ -169,6 +255,7 @@ function Dashboard() {
                 }
             );
         };
+
 
     const formatStatus =
         (status) => {
@@ -189,6 +276,11 @@ function Dashboard() {
                 );
         };
 
+
+    // ============================================
+    // LOADING
+    // ============================================
+
     if (loading) {
         return (
             <main className="dashboard-page">
@@ -206,6 +298,11 @@ function Dashboard() {
             </main>
         );
     }
+
+
+    // ============================================
+    // ERROR
+    // ============================================
 
     if (error) {
         return (
@@ -237,6 +334,23 @@ function Dashboard() {
             </main>
         );
     }
+
+
+    /*
+     * IMPORTANT:
+     * Admin users should not use the normal user dashboard.
+     * Once the profile has loaded, redirect them to the
+     * dedicated admin dashboard.
+     */
+    if (profile?.role === 'ADMIN') {
+        return (
+            <Navigate
+                to="/admin"
+                replace
+            />
+        );
+    }
+
 
     return (
         <main className="dashboard-page">
@@ -557,6 +671,28 @@ function Dashboard() {
 
                 </div>
 
+
+                {removeMessage.text && (
+
+                    <div
+                        className={
+                            removeMessage.type === 'success'
+                                ? 'dashboard-remove-message success'
+                                : 'dashboard-remove-message error'
+                        }
+                    >
+                        {removeMessage.type === 'success'
+                            ? <CheckCircle2 size={16} />
+                            : <AlertCircle size={16} />}
+
+                        <span>
+                            {removeMessage.text}
+                        </span>
+                    </div>
+
+                )}
+
+
                 {items.length === 0 ? (
 
                     <div className="dashboard-feature-empty">
@@ -659,17 +795,40 @@ function Dashboard() {
                                                 </span>
                                             )}
 
-                                            <Link
-                                                to={`/items/${item._id}/edit`}
-                                                className="dashboard-text-link"
-                                                style={{
-                                                    marginTop:
-                                                        '8px'
-                                                }}
+                                            <div
+                                                className="dashboard-equipment-actions"
                                             >
-                                                <Pencil size={13} />
-                                                Edit listing
-                                            </Link>
+
+                                                <Link
+                                                    to={`/items/${item._id}/edit`}
+                                                    className="dashboard-text-link"
+                                                >
+                                                    <Pencil size={13} />
+                                                    Edit listing
+                                                </Link>
+
+                                                <button
+                                                    type="button"
+                                                    className="dashboard-remove-button"
+                                                    onClick={() =>
+                                                        handleRemoveItem(
+                                                            item
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        removingItemId ===
+                                                        item._id
+                                                    }
+                                                >
+                                                    <Trash2 size={13} />
+
+                                                    {removingItemId ===
+                                                    item._id
+                                                        ? 'Removing...'
+                                                        : 'Remove equipment'}
+                                                </button>
+
+                                            </div>
 
                                         </div>
 

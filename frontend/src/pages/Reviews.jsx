@@ -1,46 +1,54 @@
 import { useEffect, useState } from 'react';
+
 import {
-    MessageSquare,
     Star,
-    Send
+    MessageSquare,
+    Send,
+    CheckCircle,
+    AlertCircle
 } from 'lucide-react';
 
 import api from '../services/api';
 import { useAuth } from '../context/useAuth';
-
 import './Reviews.css';
 
-function Reviews() {
-    const { user } = useAuth();
+const Reviews = () => {
+    const {
+    user,
+    loading: authLoading
+} = useAuth();
+
+    const userId = user?._id || user?.id;
 
     const [reviews, setReviews] = useState([]);
-    const [completedBorrowings, setCompletedBorrowings] = useState([]);
+    const [completedBorrowings, setCompletedBorrowings] =
+        useState([]);
 
-    const [selectedBorrowing, setSelectedBorrowing] = useState('');
-    const [rating, setRating] = useState(5);
-    const [comment, setComment] = useState('');
+    const [ratings, setRatings] = useState({});
+    const [comments, setComments] = useState({});
 
     const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
+    const [submittingId, setSubmittingId] = useState(null);
 
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [message, setMessage] = useState({
+        type: '',
+        text: ''
+    });
 
     useEffect(() => {
+        if (!userId) {
+    return;
+}
+
         let cancelled = false;
 
-        const fetchReviews = async () => {
-            if (!user?.id) {
-                setLoading(false);
-                return;
-            }
-
+        const loadData = async () => {
             try {
                 const [
                     reviewsResponse,
                     borrowingsResponse
                 ] = await Promise.all([
-                    api.get(`/reviews/user/${user.id}`),
+                    api.get(`/reviews/user/${userId}`),
                     api.get('/borrowings/my-requests')
                 ]);
 
@@ -48,27 +56,40 @@ function Reviews() {
                     return;
                 }
 
-                setReviews(
-                    reviewsResponse.data.reviews || []
-                );
+                const existingReviews =
+                    reviewsResponse.data.reviews || [];
 
-                setCompletedBorrowings(
-                    (borrowingsResponse.data.borrowings || [])
-                        .filter(
-                            (borrowing) =>
-                                borrowing.status === 'COMPLETED'
-                        )
-                );
+                const borrowings =
+                    borrowingsResponse.data.borrowings ||
+                    borrowingsResponse.data.requests ||
+                    [];
 
-            } catch (err) {
+                const completed =
+                    borrowings.filter(
+                        (borrowing) =>
+                            borrowing.status === 'COMPLETED'
+                    );
+
+                setReviews(existingReviews);
+                setCompletedBorrowings(completed);
+
+            } catch (error) {
                 if (cancelled) {
                     return;
                 }
 
-                setError(
-                    err.response?.data?.message ||
-                    'Failed to load reviews'
+                console.error(
+                    'Failed to load reviews:',
+                    error
                 );
+
+                setMessage({
+                    type: 'error',
+                    text:
+                        error.response?.data?.message ||
+                        'Failed to load reviews.'
+                });
+
             } finally {
                 if (!cancelled) {
                     setLoading(false);
@@ -76,15 +97,15 @@ function Reviews() {
             }
         };
 
-        fetchReviews();
+        loadData();
 
         return () => {
             cancelled = true;
         };
-    }, [user]);
+    }, [userId]);
 
-    const reloadReviews = async () => {
-        if (!user?.id) {
+    const reloadData = async () => {
+        if (!userId) {
             return;
         }
 
@@ -93,151 +114,174 @@ function Reviews() {
                 reviewsResponse,
                 borrowingsResponse
             ] = await Promise.all([
-                api.get(`/reviews/user/${user.id}`),
+                api.get(`/reviews/user/${userId}`),
                 api.get('/borrowings/my-requests')
             ]);
 
-            setReviews(
-                reviewsResponse.data.reviews || []
+            const existingReviews =
+                reviewsResponse.data.reviews || [];
+
+            const borrowings =
+                borrowingsResponse.data.borrowings ||
+                borrowingsResponse.data.requests ||
+                [];
+
+            const completed =
+                borrowings.filter(
+                    (borrowing) =>
+                        borrowing.status === 'COMPLETED'
+                );
+
+            setReviews(existingReviews);
+            setCompletedBorrowings(completed);
+
+        } catch (error) {
+            console.error(
+                'Failed to reload reviews:',
+                error
             );
 
-            setCompletedBorrowings(
-                (borrowingsResponse.data.borrowings || [])
-                    .filter(
-                        (borrowing) =>
-                            borrowing.status === 'COMPLETED'
-                    )
-            );
-
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Failed to refresh reviews'
-            );
+            setMessage({
+                type: 'error',
+                text:
+                    error.response?.data?.message ||
+                    'Failed to refresh reviews.'
+            });
         }
     };
 
-    const getOtherUser = (borrowing) => {
-        if (!user?.id) {
-            return null;
-        }
-
-        const borrowerId =
-            borrowing.borrower?._id ||
-            borrowing.borrower;
-
-        const lenderId =
-            borrowing.lender?._id ||
-            borrowing.lender;
-
-        if (
-            borrowerId?.toString() ===
-            user.id.toString()
-        ) {
-            return borrowing.lender;
-        }
-
-        if (
-            lenderId?.toString() ===
-            user.id.toString()
-        ) {
-            return borrowing.borrower;
-        }
-
-        return null;
-    };
-
-    const hasReviewedBorrowing = (borrowingId) => {
-        return reviews.some((review) => {
-            const reviewBorrowingId =
-                review.borrowing?._id ||
-                review.borrowing;
-
-            return (
-                reviewBorrowingId?.toString() ===
-                borrowingId.toString()
-            );
-        });
+    const hasReviewed = (borrowingId) => {
+        return reviews.some(
+            (review) =>
+                review.borrowing?._id === borrowingId ||
+                review.borrowing === borrowingId
+        );
     };
 
     const reviewableBorrowings =
         completedBorrowings.filter(
             (borrowing) =>
-                !hasReviewedBorrowing(borrowing._id)
+                !hasReviewed(borrowing._id)
         );
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
+    const handleSubmit = async (borrowingId) => {
+        const borrowingRating =
+            ratings[borrowingId] || 5;
 
-        if (!selectedBorrowing) {
-            setError(
-                'Please select a completed borrowing.'
-            );
-            setSuccess('');
-            return;
-        }
-
-        setSubmitting(true);
-        setError('');
-        setSuccess('');
+        const borrowingComment =
+            comments[borrowingId] || '';
 
         try {
-            await api.post('/reviews', {
-                borrowingId: selectedBorrowing,
-                rating: Number(rating),
-                comment
+            setSubmittingId(borrowingId);
+
+            setMessage({
+                type: '',
+                text: ''
             });
 
-            setSuccess(
-                'Review submitted successfully.'
+            await api.post('/reviews', {
+                borrowingId,
+                rating: Number(borrowingRating),
+                comment: borrowingComment
+            });
+
+            setMessage({
+                type: 'success',
+                text:
+                    'Your review has been submitted successfully.'
+            });
+
+            setRatings((previous) => {
+                const updated = {
+                    ...previous
+                };
+
+                delete updated[borrowingId];
+
+                return updated;
+            });
+
+            setComments((previous) => {
+                const updated = {
+                    ...previous
+                };
+
+                delete updated[borrowingId];
+
+                return updated;
+            });
+
+            await reloadData();
+
+        } catch (error) {
+            console.error(
+                'Failed to submit review:',
+                error
             );
 
-            setSelectedBorrowing('');
-            setRating(5);
-            setComment('');
+            setMessage({
+                type: 'error',
+                text:
+                    error.response?.data?.message ||
+                    'Failed to submit review.'
+            });
 
-            await reloadReviews();
-
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Failed to submit review'
-            );
         } finally {
-            setSubmitting(false);
+            setSubmittingId(null);
         }
     };
 
-    const renderStars = (value) => {
-        return (
-            <div className="review-stars">
-                {Array.from(
-                    { length: 5 },
-                    (_, index) => (
-                        <Star
-                            key={index}
-                            size={15}
-                            fill={
-                                index < value
-                                    ? 'currentColor'
-                                    : 'none'
-                            }
-                        />
-                    )
-                )}
-            </div>
-        );
+    const handleRatingChange = (
+        borrowingId,
+        value
+    ) => {
+        setRatings((previous) => ({
+            ...previous,
+            [borrowingId]: value
+        }));
     };
 
-    if (loading) {
+    const handleCommentChange = (
+        borrowingId,
+        value
+    ) => {
+        setComments((previous) => ({
+            ...previous,
+            [borrowingId]: value
+        }));
+    };
+
+    const getItemName = (borrowing) => {
+        if (
+            borrowing?.item &&
+            typeof borrowing.item === 'object'
+        ) {
+            return borrowing.item.name;
+        }
+
+        return 'Equipment';
+    };
+
+    const getOtherUser = (borrowing) => {
+        if (!borrowing) {
+            return null;
+        }
+
+        if (
+            borrowing.borrower?._id === userId
+        ) {
+            return borrowing.lender;
+        }
+
+        return borrowing.borrower;
+    };
+
+    if (authLoading || loading) {
         return (
             <main className="reviews-page">
                 <div className="reviews-loading">
-                    <div className="reviews-spinner"></div>
-
-                    <p>
-                        Loading reviews...
-                    </p>
+                    <div className="reviews-spinner" />
+                    <p>Loading reviews...</p>
                 </div>
             </main>
         );
@@ -246,25 +290,25 @@ function Reviews() {
     return (
         <main className="reviews-page">
 
-            {/* HEADER */}
-
             <header className="reviews-header">
 
                 <div>
+
                     <span className="reviews-eyebrow">
-                        COMMUNITY TRUST
+                        TRUST & COMMUNITY
                     </span>
 
                     <h1>
-                        Reviews &amp; <em>ratings.</em>
+                        Reviews &{' '}
+                        <em>reputation.</em>
                     </h1>
 
                     <p>
-                        Build trust within the Lendr
-                        community by sharing honest
-                        feedback after completed
-                        borrowings.
+                        Share your experience after a
+                        completed borrowing and help build
+                        a more reliable Lendr community.
                     </p>
+
                 </div>
 
                 <div className="reviews-header-icon">
@@ -273,30 +317,28 @@ function Reviews() {
 
             </header>
 
+            {message.text && (
+                <div
+                    className={`reviews-message ${message.type}`}
+                >
+                    {message.type === 'success' ? (
+                        <CheckCircle size={16} />
+                    ) : (
+                        <AlertCircle size={16} />
+                    )}
 
-            {/* MESSAGES */}
-
-            {error && (
-                <div className="reviews-message error">
-                    {error}
+                    <span>
+                        {message.text}
+                    </span>
                 </div>
             )}
-
-            {success && (
-                <div className="reviews-message success">
-                    {success}
-                </div>
-            )}
-
-
-            {/* RECEIVED REVIEWS */}
 
             <section className="reviews-section">
 
                 <div className="reviews-section-heading">
 
                     <span className="reviews-section-eyebrow">
-                        WHAT PEOPLE SAY
+                        YOUR REVIEWS
                     </span>
 
                     <h2>
@@ -305,13 +347,11 @@ function Reviews() {
 
                 </div>
 
-
                 {reviews.length === 0 ? (
-
                     <div className="reviews-empty">
 
                         <div className="reviews-empty-icon">
-                            <MessageSquare size={23} />
+                            <Star size={23} />
                         </div>
 
                         <h3>
@@ -319,20 +359,16 @@ function Reviews() {
                         </h3>
 
                         <p>
-                            Once someone completes a
-                            borrowing with you and leaves
-                            feedback, their review will
-                            appear here.
+                            Reviews from other members
+                            will appear here after completed
+                            borrowings.
                         </p>
 
                     </div>
-
                 ) : (
-
                     <div className="reviews-grid">
 
                         {reviews.map((review) => (
-
                             <article
                                 className="review-card"
                                 key={review._id}
@@ -347,14 +383,11 @@ function Reviews() {
                                             {review.reviewer?.avatar ? (
                                                 <img
                                                     src={
-                                                        review
-                                                            .reviewer
-                                                            .avatar
+                                                        review.reviewer.avatar
                                                     }
                                                     alt={
-                                                        review
-                                                            .reviewer
-                                                            .name
+                                                        review.reviewer.name ||
+                                                        'Reviewer'
                                                     }
                                                 />
                                             ) : (
@@ -369,25 +402,47 @@ function Reviews() {
 
                                             <strong>
                                                 {review.reviewer?.name ||
-                                                    'Lendr user'}
+                                                    'Lendr member'}
                                             </strong>
 
                                             <span>
-                                                {new Date(
-                                                    review.createdAt
-                                                ).toLocaleDateString()}
+                                                {review.createdAt
+                                                    ? new Date(
+                                                        review.createdAt
+                                                    ).toLocaleDateString()
+                                                    : ''}
                                             </span>
 
                                         </div>
 
                                     </div>
 
-                                    {renderStars(
-                                        review.rating
-                                    )}
+                                    <div className="review-stars">
+
+                                        {[1, 2, 3, 4, 5].map(
+                                            (value) => (
+                                                <Star
+                                                    key={value}
+                                                    size={15}
+                                                    fill={
+                                                        value <=
+                                                        review.rating
+                                                            ? 'currentColor'
+                                                            : 'none'
+                                                    }
+                                                    className={`review-star ${
+                                                        value <=
+                                                        review.rating
+                                                            ? 'active'
+                                                            : ''
+                                                    }`}
+                                                />
+                                            )
+                                        )}
+
+                                    </div>
 
                                 </div>
-
 
                                 {review.comment && (
                                     <p className="review-comment">
@@ -396,59 +451,52 @@ function Reviews() {
                                 )}
 
                             </article>
-
                         ))}
 
                     </div>
-
                 )}
 
             </section>
-
-
-            {/* WRITE REVIEW */}
 
             <section className="reviews-section">
 
                 <div className="reviews-section-heading">
 
                     <span className="reviews-section-eyebrow">
-                        SHARE YOUR EXPERIENCE
+                        COMPLETE A REVIEW
                     </span>
 
                     <h2>
-                        Leave a review
+                        Share your experience
                     </h2>
 
                 </div>
 
-
                 {reviewableBorrowings.length === 0 ? (
-
                     <div className="reviews-empty">
 
                         <div className="reviews-empty-icon">
-                            <Star size={23} />
+                            <CheckCircle size={23} />
                         </div>
 
                         <h3>
-                            Nothing to review
+                            You're all caught up
                         </h3>
 
                         <p>
-                            Completed borrowings that have
-                            not been reviewed yet will appear
-                            here.
+                            There are no completed borrowings
+                            waiting for a review.
                         </p>
 
                     </div>
-
                 ) : (
-
                     <div className="review-form-list">
 
                         {reviewableBorrowings.map(
                             (borrowing) => {
+
+                                const borrowingRating =
+                                    ratings[borrowing._id] || 5;
 
                                 const otherUser =
                                     getOtherUser(
@@ -456,7 +504,7 @@ function Reviews() {
                                     );
 
                                 return (
-                                    <div
+                                    <article
                                         className="review-form-card"
                                         key={borrowing._id}
                                     >
@@ -464,121 +512,114 @@ function Reviews() {
                                         <div className="review-form-info">
 
                                             <span>
-                                                COMPLETED BORROWING
+                                                Completed borrowing
                                             </span>
 
                                             <h3>
-                                                {borrowing
-                                                    .item
-                                                    ?.name ||
-                                                    'Equipment'}
+                                                {getItemName(
+                                                    borrowing
+                                                )}
                                             </h3>
 
                                             <p>
-                                                Share your
-                                                experience with{' '}
+                                                Your experience with{' '}
                                                 <strong>
                                                     {otherUser?.name ||
-                                                        'the other user'}
+                                                        'another Lendr member'}
                                                 </strong>
-                                                .
                                             </p>
 
                                         </div>
 
-
-                                        <form
-                                            className="review-form"
-                                            onSubmit={
-                                                handleSubmit
-                                            }
-                                        >
+                                        <div className="review-form">
 
                                             <div className="review-rating-picker">
 
                                                 {[1, 2, 3, 4, 5].map(
                                                     (value) => (
-
                                                         <button
                                                             key={value}
                                                             type="button"
-                                                            className={
+                                                            className={`review-star interactive ${
                                                                 value <=
-                                                                rating
-                                                                    ? 'review-star active interactive'
-                                                                    : 'review-star interactive'
-                                                            }
+                                                                borrowingRating
+                                                                    ? 'active'
+                                                                    : ''
+                                                            }`}
                                                             onClick={() =>
-                                                                setRating(
+                                                                handleRatingChange(
+                                                                    borrowing._id,
                                                                     value
                                                                 )
                                                             }
-                                                            aria-label={`${value} stars`}
+                                                            aria-label={`${value} star rating`}
                                                         >
                                                             <Star
-                                                                size={21}
+                                                                size={22}
                                                                 fill={
                                                                     value <=
-                                                                    rating
+                                                                    borrowingRating
                                                                         ? 'currentColor'
                                                                         : 'none'
                                                                 }
                                                             />
                                                         </button>
-
                                                     )
                                                 )}
 
                                             </div>
 
-
                                             <textarea
-                                                value={comment}
+                                                placeholder="Share a few thoughts about your experience..."
+                                                value={
+                                                    comments[
+                                                        borrowing._id
+                                                    ] || ''
+                                                }
                                                 onChange={(event) =>
-                                                    setComment(
-                                                        event.target
-                                                            .value
+                                                    handleCommentChange(
+                                                        borrowing._id,
+                                                        event.target.value
                                                     )
                                                 }
-                                                placeholder="Share your experience with this borrowing..."
                                                 maxLength={500}
                                             />
 
-
                                             <button
-                                                type="submit"
+                                                type="button"
                                                 className="review-submit"
                                                 disabled={
-                                                    submitting
+                                                    submittingId ===
+                                                    borrowing._id
                                                 }
                                                 onClick={() =>
-                                                    setSelectedBorrowing(
+                                                    handleSubmit(
                                                         borrowing._id
                                                     )
                                                 }
                                             >
-                                                <Send size={16} />
+                                                <Send size={14} />
 
-                                                {submitting
+                                                {submittingId ===
+                                                borrowing._id
                                                     ? 'Submitting...'
                                                     : 'Submit review'}
                                             </button>
 
-                                        </form>
+                                        </div>
 
-                                    </div>
+                                    </article>
                                 );
                             }
                         )}
 
                     </div>
-
                 )}
 
             </section>
 
         </main>
     );
-}
+};
 
 export default Reviews;

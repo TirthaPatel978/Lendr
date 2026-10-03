@@ -233,6 +233,34 @@ function Admin() {
             );
     };
 
+    const formatPaymentStatus = (status) => {
+        switch (status) {
+            case 'PAID':
+                return 'Paid';
+
+            case 'PENDING':
+                return 'Payment pending';
+
+            case 'NOT_REQUIRED':
+                return 'Not required';
+
+            default:
+                return 'Not available';
+        }
+    };
+
+    const getEffectivePaymentStatus = (dispute) => {
+        if (dispute?.damagePaymentStatus === 'PAID') {
+            return 'PAID';
+        }
+
+        if (Number(dispute?.damageAmount || 0) > 0) {
+            return 'PENDING';
+        }
+
+        return 'NOT_REQUIRED';
+    };
+
     const formatDate = (date) => {
         if (!date) {
             return '—';
@@ -928,6 +956,19 @@ function Admin() {
                                             {dispute.againstUser
                                                 ?.name ||
                                                 'Unknown'}
+                                        </span>
+
+                                        <span>
+                                            Damage: ₹{Number(
+                                                dispute.damageAmount || 0
+                                            ).toLocaleString('en-IN')}
+                                        </span>
+
+                                        <span>
+                                            Payment:{' '}
+                                            {formatPaymentStatus(
+                                                getEffectivePaymentStatus(dispute)
+                                            )}
                                         </span>
                                     </div>
 

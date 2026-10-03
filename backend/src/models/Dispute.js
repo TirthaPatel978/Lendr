@@ -51,6 +51,34 @@ const disputeSchema = new mongoose.Schema(
             default: 0
         },
 
+        /*
+         * Simulated damage-payment system.
+         *
+         * NOT_REQUIRED = no damage fee
+         * PENDING      = accused user needs to pay
+         * PAID         = simulated payment completed
+         */
+        damagePaymentStatus: {
+            type: String,
+            enum: [
+                'NOT_REQUIRED',
+                'PENDING',
+                'PAID'
+            ],
+            default: 'NOT_REQUIRED'
+        },
+
+        damagePaidAt: {
+            type: Date,
+            default: null
+        },
+
+        damagePaidBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+
         evidencePhotos: [
             {
                 type: String
@@ -84,6 +112,7 @@ const disputeSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+
 disputeSchema.index({
     reportedBy: 1,
     createdAt: -1
@@ -103,4 +132,8 @@ disputeSchema.index({
     borrowing: 1,
     status: 1
 });
-module.exports = mongoose.model('Dispute', disputeSchema);
+
+module.exports = mongoose.model(
+    'Dispute',
+    disputeSchema
+);

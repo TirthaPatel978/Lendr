@@ -45,12 +45,17 @@ const createReview = async (req, res) => {
             });
         }
 
-        // Check whether current user was involved
+        // ==========================================
+        // CHECK WHETHER CURRENT USER WAS INVOLVED
+        // ==========================================
+
+        const currentUserId = req.user.toString();
+
         const isBorrower =
-            borrowing.borrower.toString() === req.user;
+            borrowing.borrower.toString() === currentUserId;
 
         const isLender =
-            borrowing.lender.toString() === req.user;
+            borrowing.lender.toString() === currentUserId;
 
         if (!isBorrower && !isLender) {
             return res.status(403).json({
@@ -58,19 +63,25 @@ const createReview = async (req, res) => {
             });
         }
 
-        // Determine who is being reviewed
+        // ==========================================
+        // DETERMINE WHO IS BEING REVIEWED
+        // ==========================================
+
         const reviewedUser = isBorrower
             ? borrowing.lender
             : borrowing.borrower;
 
         // Prevent self-review
-        if (reviewedUser.toString() === req.user) {
+        if (reviewedUser.toString() === currentUserId) {
             return res.status(400).json({
                 message: 'You cannot review yourself'
             });
         }
 
-        // Prevent duplicate review
+        // ==========================================
+        // PREVENT DUPLICATE REVIEW
+        // ==========================================
+
         const existingReview = await Review.findOne({
             reviewer: req.user,
             borrowing: borrowingId
@@ -82,7 +93,10 @@ const createReview = async (req, res) => {
             });
         }
 
-        // Create review
+        // ==========================================
+        // CREATE REVIEW
+        // ==========================================
+
         const review = await Review.create({
             reviewer: req.user,
             reviewedUser,
@@ -90,7 +104,6 @@ const createReview = async (req, res) => {
             rating,
             comment: comment || ''
         });
-
 
         // ==========================================
         // RECALCULATE USER'S AVERAGE RATING
@@ -111,13 +124,13 @@ const createReview = async (req, res) => {
         const roundedRating =
             Math.round(averageRating * 10) / 10;
 
-
         // ==========================================
         // RELIABILITY SCORE
         // ==========================================
 
         // 1. Rating contribution
         // Maximum: 50 points
+
         const ratingContribution =
             (roundedRating / 5) * 50;
 
@@ -178,8 +191,6 @@ const createReview = async (req, res) => {
 
         // 4. Overdue penalty
         // Maximum penalty: 10 points
-        //
-        // wasOverdue is set when a borrowing becomes overdue.
 
         const overdueBorrowings =
             await Borrowing.countDocuments({

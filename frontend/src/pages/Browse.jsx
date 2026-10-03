@@ -82,6 +82,7 @@ function Browse() {
         setLocationMessage
     ] = useState('');
 
+
     const fetchItems = useCallback(
         async () => {
             try {
@@ -91,55 +92,33 @@ function Browse() {
                 const params = {};
 
                 const searchValue =
-                    searchParams.get(
-                        'search'
-                    );
+                    searchParams.get('search');
 
                 const categoryValue =
-                    searchParams.get(
-                        'category'
-                    );
+                    searchParams.get('category');
 
                 const rentalTypeValue =
-                    searchParams.get(
-                        'rentalType'
-                    );
+                    searchParams.get('rentalType');
 
                 const conditionValue =
-                    searchParams.get(
-                        'condition'
-                    );
+                    searchParams.get('condition');
 
                 const minPriceValue =
-                    searchParams.get(
-                        'minPrice'
-                    );
+                    searchParams.get('minPrice');
 
                 const maxPriceValue =
-                    searchParams.get(
-                        'maxPrice'
-                    );
+                    searchParams.get('maxPrice');
 
                 const radiusValue =
-                    searchParams.get(
-                        'radius'
-                    );
+                    searchParams.get('radius');
 
                 const latValue =
-                    searchParams.get(
-                        'lat'
-                    ) ||
-                    searchParams.get(
-                        'latitude'
-                    );
+                    searchParams.get('lat') ||
+                    searchParams.get('latitude');
 
                 const lngValue =
-                    searchParams.get(
-                        'lng'
-                    ) ||
-                    searchParams.get(
-                        'longitude'
-                    );
+                    searchParams.get('lng') ||
+                    searchParams.get('longitude');
 
                 if (searchValue) {
                     params.search =
@@ -205,8 +184,7 @@ function Browse() {
                 console.error(err);
 
                 setError(
-                    err.response?.data
-                        ?.message ||
+                    err.response?.data?.message ||
                     'Unable to load equipment right now.'
                 );
 
@@ -216,6 +194,7 @@ function Browse() {
         },
         [searchParams]
     );
+
 
     useEffect(() => {
         let cancelled = false;
@@ -228,55 +207,33 @@ function Browse() {
                 const params = {};
 
                 const searchValue =
-                    searchParams.get(
-                        'search'
-                    );
+                    searchParams.get('search');
 
                 const categoryValue =
-                    searchParams.get(
-                        'category'
-                    );
+                    searchParams.get('category');
 
                 const rentalTypeValue =
-                    searchParams.get(
-                        'rentalType'
-                    );
+                    searchParams.get('rentalType');
 
                 const conditionValue =
-                    searchParams.get(
-                        'condition'
-                    );
+                    searchParams.get('condition');
 
                 const minPriceValue =
-                    searchParams.get(
-                        'minPrice'
-                    );
+                    searchParams.get('minPrice');
 
                 const maxPriceValue =
-                    searchParams.get(
-                        'maxPrice'
-                    );
+                    searchParams.get('maxPrice');
 
                 const radiusValue =
-                    searchParams.get(
-                        'radius'
-                    );
+                    searchParams.get('radius');
 
                 const latValue =
-                    searchParams.get(
-                        'lat'
-                    ) ||
-                    searchParams.get(
-                        'latitude'
-                    );
+                    searchParams.get('lat') ||
+                    searchParams.get('latitude');
 
                 const lngValue =
-                    searchParams.get(
-                        'lng'
-                    ) ||
-                    searchParams.get(
-                        'longitude'
-                    );
+                    searchParams.get('lng') ||
+                    searchParams.get('longitude');
 
                 if (searchValue) {
                     params.search =
@@ -350,8 +307,7 @@ function Browse() {
                 console.error(err);
 
                 setError(
-                    err.response?.data
-                        ?.message ||
+                    err.response?.data?.message ||
                     'Unable to load equipment right now.'
                 );
 
@@ -369,6 +325,8 @@ function Browse() {
         };
     }, [searchParams]);
 
+
+    // USE CURRENT LOCATION
     const useCurrentLocation = () => {
         if (
             !navigator.geolocation
@@ -376,6 +334,7 @@ function Browse() {
             setLocationMessage(
                 'Location services are not supported by this browser.'
             );
+
             return;
         }
 
@@ -408,6 +367,7 @@ function Browse() {
 
                 setLocationLoading(false);
             },
+
             () => {
                 setLocationMessage(
                     'Unable to access your location. You can enter latitude and longitude manually.'
@@ -418,6 +378,8 @@ function Browse() {
         );
     };
 
+
+    // SEARCH
     const handleSearch = (
         event
     ) => {
@@ -473,6 +435,8 @@ function Browse() {
         setSearchParams(params);
     };
 
+
+    // CLEAR FILTERS
     const clearFilters = () => {
         setSearch('');
         setCategory('');
@@ -487,6 +451,7 @@ function Browse() {
 
         setSearchParams({});
     };
+
 
     const formatPrice = (
         item
@@ -510,6 +475,7 @@ function Browse() {
         return 'Price unavailable';
     };
 
+
     const formatCondition = (
         value
     ) => {
@@ -530,6 +496,7 @@ function Browse() {
             );
     };
 
+
     const getImage = (
         item
     ) => {
@@ -542,6 +509,7 @@ function Browse() {
 
         return null;
     };
+
 
     return (
         <main className="browse-page">
@@ -581,11 +549,13 @@ function Browse() {
 
             </section>
 
+
             <section className="browse-content">
 
                 <aside className="filter-panel">
 
                     <div className="filter-heading">
+
                         <h2>
                             Find equipment
                         </h2>
@@ -598,13 +568,17 @@ function Browse() {
                         >
                             Clear all
                         </button>
+
                     </div>
+
 
                     <form
                         onSubmit={
                             handleSearch
                         }
                     >
+
+                        {/* SEARCH */}
 
                         <div className="filter-group">
 
@@ -621,13 +595,15 @@ function Browse() {
                                     event
                                 ) =>
                                     setSearch(
-                                        event.target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                             />
 
                         </div>
+
+
+                        {/* CATEGORY */}
 
                         <div className="filter-group">
 
@@ -642,8 +618,7 @@ function Browse() {
                                     event
                                 ) =>
                                     setCategory(
-                                        event.target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                             >
@@ -670,6 +645,9 @@ function Browse() {
 
                         </div>
 
+
+                        {/* RENTAL TYPE */}
+
                         <div className="filter-group">
 
                             <label htmlFor="rentalType">
@@ -683,8 +661,7 @@ function Browse() {
                                     event
                                 ) =>
                                     setRentalType(
-                                        event.target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                             >
@@ -703,6 +680,9 @@ function Browse() {
 
                         </div>
 
+
+                        {/* CONDITION */}
+
                         <div className="filter-group">
 
                             <label htmlFor="condition">
@@ -716,8 +696,7 @@ function Browse() {
                                     event
                                 ) =>
                                     setCondition(
-                                        event.target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                             >
@@ -744,6 +723,9 @@ function Browse() {
 
                         </div>
 
+
+                        {/* PRICE */}
+
                         <div className="filter-group">
 
                             <label>
@@ -761,8 +743,7 @@ function Browse() {
                                         event
                                     ) =>
                                         setMinPrice(
-                                            event.target
-                                                .value
+                                            event.target.value
                                         )
                                     }
                                 />
@@ -780,8 +761,7 @@ function Browse() {
                                         event
                                     ) =>
                                         setMaxPrice(
-                                            event.target
-                                                .value
+                                            event.target.value
                                         )
                                     }
                                 />
@@ -789,6 +769,9 @@ function Browse() {
                             </div>
 
                         </div>
+
+
+                        {/* SEARCH DISTANCE */}
 
                         <div className="filter-group">
 
@@ -803,8 +786,7 @@ function Browse() {
                                     event
                                 ) =>
                                     setRadius(
-                                        event.target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                             >
@@ -839,6 +821,9 @@ function Browse() {
 
                         </div>
 
+
+                        {/* LOCATION */}
+
                         <div className="filter-group">
 
                             <label>
@@ -864,26 +849,21 @@ function Browse() {
                                     : 'Use my current location'}
                             </button>
 
-                            <div
-                                className="price-inputs"
-                                style={{
-                                    marginTop:
-                                        '10px'
-                                }}
-                            >
+
+                            <div className="location-inputs">
+
                                 <input
                                     type="number"
                                     step="any"
+                                    min="-90"
+                                    max="90"
                                     placeholder="Latitude"
-                                    value={
-                                        latitude
-                                    }
+                                    value={latitude}
                                     onChange={(
                                         event
                                     ) =>
                                         setLatitude(
-                                            event.target
-                                                .value
+                                            event.target.value
                                         )
                                     }
                                 />
@@ -891,30 +871,24 @@ function Browse() {
                                 <input
                                     type="number"
                                     step="any"
+                                    min="-180"
+                                    max="180"
                                     placeholder="Longitude"
-                                    value={
-                                        longitude
-                                    }
+                                    value={longitude}
                                     onChange={(
                                         event
                                     ) =>
                                         setLongitude(
-                                            event.target
-                                                .value
+                                            event.target.value
                                         )
                                     }
                                 />
+
                             </div>
 
+
                             {locationMessage && (
-                                <p
-                                    style={{
-                                        marginTop:
-                                            '8px',
-                                        fontSize:
-                                            '12px'
-                                    }}
-                                >
+                                <p className="location-message">
                                     {
                                         locationMessage
                                     }
@@ -922,6 +896,9 @@ function Browse() {
                             )}
 
                         </div>
+
+
+                        {/* SEARCH BUTTON */}
 
                         <button
                             type="submit"
@@ -933,6 +910,9 @@ function Browse() {
                     </form>
 
                 </aside>
+
+
+                {/* EQUIPMENT */}
 
                 <div className="equipment-section">
 
@@ -956,6 +936,7 @@ function Browse() {
 
                     </div>
 
+
                     {loading && (
                         <div className="browse-message">
 
@@ -967,6 +948,7 @@ function Browse() {
 
                         </div>
                     )}
+
 
                     {!loading &&
                         error && (
@@ -991,6 +973,7 @@ function Browse() {
 
                             </div>
                         )}
+
 
                     {!loading &&
                         !error &&
@@ -1021,6 +1004,7 @@ function Browse() {
 
                             </div>
                         )}
+
 
                     {!loading &&
                         !error &&
@@ -1061,9 +1045,7 @@ function Browse() {
 
                                                             <span>
                                                                 {item.name
-                                                                    ?.charAt(
-                                                                        0
-                                                                    )
+                                                                    ?.charAt(0)
                                                                     ?.toUpperCase()}
                                                             </span>
 
@@ -1077,6 +1059,7 @@ function Browse() {
                                                     </span>
 
                                                 </div>
+
 
                                                 <div className="equipment-card-body">
 
@@ -1098,6 +1081,7 @@ function Browse() {
                                                             'No description available.'
                                                         }
                                                     </p>
+
 
                                                     <div className="equipment-card-footer">
 

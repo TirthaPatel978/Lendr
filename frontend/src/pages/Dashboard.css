@@ -1156,3 +1156,89 @@
     }
 
 }
+/* ============================================
+   EQUIPMENT ACTIONS
+============================================ */
+
+.dashboard-equipment-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.dashboard-equipment-actions .dashboard-text-link {
+    margin-top: 0 !important;
+}
+
+
+/* ============================================
+   REMOVE EQUIPMENT BUTTON
+============================================ */
+
+.dashboard-remove-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #a34b45;
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.dashboard-remove-button:hover {
+    color: #7f302b;
+}
+
+.dashboard-remove-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+
+/* ============================================
+   REMOVE MESSAGE
+============================================ */
+
+.dashboard-remove-message {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 20px;
+    padding: 12px 15px;
+    border: 1px solid;
+    font-size: 0.80rem;
+}
+
+.dashboard-remove-message.success {
+    color: #3d694d;
+    background: #f2f7f3;
+    border-color: #d5e5d9;
+}
+
+.dashboard-remove-message.error {
+    color: #9a443e;
+    background: #fbf3f2;
+    border-color: #ecd6d3;
+}
+
+
+/* ============================================
+   MOBILE
+============================================ */
+
+@media (max-width: 700px) {
+    .dashboard-equipment-actions {
+        justify-content: flex-start;
+        gap: 10px;
+    }
+}

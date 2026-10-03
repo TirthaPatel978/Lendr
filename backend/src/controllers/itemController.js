@@ -1,4 +1,5 @@
 const Item = require('../models/Item');
+const Borrowing = require('../models/Borrowing');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
 const buildLocation = (location, latitude, longitude) => {
@@ -496,6 +497,7 @@ const deleteItem = async (req, res) => {
             });
         }
 
+        // Owner-only protection
         if (
             item.owner.toString() !==
             req.user.toString()
@@ -506,17 +508,43 @@ const deleteItem = async (req, res) => {
             });
         }
 
+        const activeBorrowing =
+            await Borrowing.findOne({
+                item: item._id,
+                status: {
+                    $in: [
+                        'REQUESTED',
+                        'APPROVED',
+                        'ACTIVE',
+                        'OVERDUE'
+                    ]
+                }
+            });
+
+        if (activeBorrowing) {
+            return res.status(400).json({
+                message:
+                    'This equipment cannot be permanently removed while it has an active or pending borrowing request.'
+            });
+        }
+
+        // Permanently remove the item from MongoDB
         await item.deleteOne();
 
         res.json({
             message:
-                'Item deleted successfully'
+                'Equipment permanently removed successfully'
         });
 
     } catch (error) {
+        console.error(
+            'Delete item error:',
+            error
+        );
+
         res.status(500).json({
             message:
-                'Failed to delete item',
+                'Failed to remove equipment',
 
             error: error.message
         });

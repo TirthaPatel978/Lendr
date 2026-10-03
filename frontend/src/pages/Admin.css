@@ -483,3 +483,61 @@
         flex-direction: column;
     }
 }
+/* =========================================
+   ADMIN DISPUTE MANAGEMENT
+   ========================================= */
+
+.admin-dispute-resolution {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #faf8f4;
+    border: 1px solid #eee9e1;
+}
+
+.admin-dispute-resolution strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #557da8;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.admin-dispute-resolution p {
+    margin: 0 !important;
+    color: #6f6962;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.admin-dispute-status-select {
+    min-width: 125px;
+    padding: 7px 9px;
+    border: 1px solid #d7e0e8;
+    border-radius: 7px;
+    outline: none;
+    background: #f7f9fb;
+    color: #557da8;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.admin-dispute-status-select:focus {
+    border-color: #557da8;
+}
+
+.admin-dispute-actions {
+    min-width: 170px;
+    align-items: flex-end;
+}
+
+@media (max-width: 900px) {
+    .admin-dispute-actions {
+        min-width: 0;
+        align-items: flex-start;
+    }
+}
