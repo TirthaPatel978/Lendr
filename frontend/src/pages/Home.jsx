@@ -124,32 +124,7 @@ function Home() {
                             <div className="equipment-shape equipment-two" />
                             <div className="equipment-shape equipment-three" />
 
-                            <div className="nearby-card">
-
-                                <div className="nearby-header">
-
-                                    <div>
-                                        <p className="nearby-subtitle">
-                                            NEARBY
-                                        </p>
-
-                                        <p className="nearby-title">
-                                            Equipment around you
-                                        </p>
-                                    </div>
-
-                                    <span className="nearby-distance">
-                                        Within 5 km
-                                    </span>
-
-                                </div>
-
-                                <div className="nearby-search">
-                                    <Search size={15} />
-                                    Search for drills, ladders, tools...
-                                </div>
-
-                            </div>
+                            
 
                         </div>
 

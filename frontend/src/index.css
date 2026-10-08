@@ -481,10 +481,10 @@ img {
     width: 190px;
     height: 235px;
 
-    left: 13%;
-    top: 18%;
+    left: 9%;
+    top: 10%;
 
-    background: #f4efe5;
+    background: #f4ede0;
 
     transform: rotate(-7deg);
 }
@@ -493,8 +493,8 @@ img {
     width: 235px;
     height: 285px;
 
-    left: 38%;
-    top: 26%;
+    left: 36%;
+    top: 31%;
 
     background: #f0f1eb;
 
@@ -505,10 +505,10 @@ img {
     width: 190px;
     height: 235px;
 
-    right: 7%;
-    bottom: 14%;
+    right: 9%;
+    bottom: 10%;
 
-    background: #e0e8e3;
+    background: #d2e2d8;
 
     transform: rotate(8deg);
 }
