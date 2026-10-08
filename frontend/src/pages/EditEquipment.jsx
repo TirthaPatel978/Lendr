@@ -9,7 +9,10 @@ import {
     MapPin,
     IndianRupee,
     Save,
-    CheckCircle2
+    CheckCircle2,
+    ImagePlus,
+    Upload,
+    X
 } from 'lucide-react';
 
 import api from '../services/api';
@@ -40,8 +43,9 @@ function EditEquipment() {
         latitude: '',
         longitude: ''
     });
-
-
+    
+    const [existingPhotos, setExistingPhotos] = useState([]);
+    const [newPhotos, setNewPhotos] = useState([]);
     const [loading, setLoading] =
         useState(true);
 
@@ -85,6 +89,10 @@ function EditEquipment() {
                     response.data.item ||
                     response.data;
 
+                setExistingPhotos(
+                    Array.isArray(item.photos) ? item.photos : []
+                );
+                setNewPhotos([]);
 
                 setForm({
                     name: item.name || '',
@@ -258,6 +266,60 @@ function EditEquipment() {
     };
 
 
+    const handlePhotoChange = (event) => {
+        const selectedFiles = Array.from(event.target.files || []);
+        const remainingSlots = 5 - existingPhotos.length - newPhotos.length;
+
+        if (selectedFiles.length > remainingSlots) {
+            setError(
+                `You can add only ${Math.max(0, remainingSlots)} more photo(s). Maximum 5 photos per listing.`
+            );
+            event.target.value = '';
+            return;
+        }
+
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const invalidFile = selectedFiles.find(
+            file => !validTypes.includes(file.type)
+        );
+
+        if (invalidFile) {
+            setError('Only JPG, PNG and WebP images are allowed.');
+            event.target.value = '';
+            return;
+        }
+
+        const oversizedFile = selectedFiles.find(
+            file => file.size > 5 * 1024 * 1024
+        );
+
+        if (oversizedFile) {
+            setError('Each image must be 5 MB or smaller.');
+            event.target.value = '';
+            return;
+        }
+
+        setNewPhotos(current => [...current, ...selectedFiles]);
+        setError('');
+        setSuccess('');
+        event.target.value = '';
+    };
+
+    const removeExistingPhoto = (photoToRemove) => {
+        setExistingPhotos(current =>
+            current.filter(photo => photo !== photoToRemove)
+        );
+        setError('');
+        setSuccess('');
+    };
+
+    const removeNewPhoto = (indexToRemove) => {
+        setNewPhotos(current =>
+            current.filter((_, index) => index !== indexToRemove)
+        );
+        setError('');
+        setSuccess('');
+    };
     // ============================================
     // VALIDATE
     // ============================================
@@ -337,100 +399,84 @@ function EditEquipment() {
     // ============================================
 
     const handleSubmit = async (event) => {
-
         event.preventDefault();
-
 
         setError('');
         setSuccess('');
 
-
-        const validationError =
-            validateForm();
-
+        const validationError = validateForm();
 
         if (validationError) {
-
-            setError(
-                validationError
-            );
-
+            setError(validationError);
             return;
         }
 
-
         try {
-
             setSaving(true);
 
+            // Create multipart form data for text fields and photos
+            const formData = new FormData();
 
-            await api.put(
-                `/items/${id}`,
-                {
-                    name:
-                        form.name.trim(),
+            formData.append('name', form.name.trim());
+            formData.append('category', form.category.trim());
+            formData.append('description', form.description.trim());
+            formData.append('condition', form.condition);
+            formData.append('rentalType', form.rentalType);
 
-                    category:
-                        form.category.trim(),
-
-                    description:
-                        form.description.trim(),
-
-                    condition:
-                        form.condition,
-
-                    rentalType:
-                        form.rentalType,
-
-                    originalValue:
-                        Number(
-                            form.originalValue
-                        ) || 0,
-
-                    rentalPricePerDay:
-                        form.rentalType === 'PAID'
-                            ? Number(
-                                form.rentalPricePerDay
-                            )
-                            : 0,
-
-                    availability:
-                        form.availability,
-
-                    latitude:
-                        Number(
-                            location.latitude
-                        ),
-
-                    longitude:
-                        Number(
-                            location.longitude
-                        )
-                }
+            formData.append(
+                'originalValue',
+                String(Number(form.originalValue) || 0)
             );
 
-
-            setSuccess(
-                'Equipment updated successfully.'
+            formData.append(
+                'rentalPricePerDay',
+                String(
+                    form.rentalType === 'PAID'
+                        ? Number(form.rentalPricePerDay)
+                        : 0
+                )
             );
 
+            formData.append(
+                'availability',
+                String(form.availability)
+            );
+
+            formData.append(
+                'latitude',
+                String(Number(location.latitude))
+            );
+
+            formData.append(
+                'longitude',
+                String(Number(location.longitude))
+            );
+
+            // Tell the backend which existing photos to retain
+            formData.append(
+                'photosToKeep',
+                JSON.stringify(existingPhotos)
+            );
+
+            // Add newly selected image files
+            newPhotos.forEach((photo) => {
+                formData.append('photos', photo);
+            });
+
+            // Send equipment details and photos together
+            await api.put(`/items/${id}`, formData);
+
+            setSuccess('Equipment updated successfully.');
 
             setTimeout(() => {
-
-                navigate(
-                    `/items/${id}`
-                );
-
+                navigate(`/items/${id}`);
             }, 700);
 
-
         } catch (err) {
-
             console.error(
                 'Failed to update equipment:',
                 err
             );
-
 
             setError(
                 err.response?.data?.message ||
@@ -438,7 +484,6 @@ function EditEquipment() {
             );
 
         } finally {
-
             setSaving(false);
         }
     };
@@ -717,6 +762,95 @@ function EditEquipment() {
 
                     </section>
 
+                    {/* PHOTOS */}
+
+                    <section className="edit-equipment-section">
+                        <div className="edit-section-heading">
+                            <span>02</span>
+                            <div>
+                                <small>PRODUCT PHOTOS</small>
+                                <h2>Show your equipment.</h2>
+                            </div>
+                        </div>
+
+                        <p className="edit-photos-help">
+                            Keep your existing images, remove ones you no longer need,
+                            or upload new photos. Maximum 5 images, 5 MB per image.
+                        </p>
+
+                        {(existingPhotos.length > 0 || newPhotos.length > 0) ? (
+                            <div className="edit-photo-grid">
+                                {existingPhotos.map((photo, index) => (
+                                    <div className="edit-photo-card" key={photo}>
+                                        <img
+                                            src={photo}
+                                            alt={`Existing equipment photo ${index + 1}`}
+                                        />
+
+                                        <span className="edit-photo-label">Existing</span>
+
+                                        <button
+                                            type="button"
+                                            className="edit-photo-remove"
+                                            onClick={() => removeExistingPhoto(photo)}
+                                            aria-label={`Remove existing photo ${index + 1}`}
+                                        >
+                                            <X size={15} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {newPhotos.map((photo, index) => (
+                                    <div
+                                        className="edit-photo-card"
+                                        key={`${photo.name}-${photo.size}-${index}`}
+                                    >
+                                        <img
+                                            src={URL.createObjectURL(photo)}
+                                            alt={`New equipment photo ${index + 1}`}
+                                        />
+
+                                        <span className="edit-photo-label new">New photo</span>
+
+                                        <button
+                                            type="button"
+                                            className="edit-photo-remove"
+                                            onClick={() => removeNewPhoto(index)}
+                                            aria-label={`Remove new photo ${index + 1}`}
+                                        >
+                                            <X size={15} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="edit-photos-empty">
+                                <ImagePlus size={25} />
+                                <p>No photos added yet.</p>
+                            </div>
+                        )}
+
+                        <label className="edit-photo-upload">
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                multiple
+                                onChange={handlePhotoChange}
+                                disabled={existingPhotos.length + newPhotos.length >= 5}
+                            />
+
+                            <Upload size={18} />
+                            <span>
+                                {existingPhotos.length + newPhotos.length >= 5
+                                    ? 'Photo limit reached'
+                                    : 'Add photos'}
+                            </span>
+                        </label>
+
+                        <p className="edit-photo-count">
+                            {existingPhotos.length + newPhotos.length} of 5 photos
+                        </p>
+                    </section>
 
                     {/* =================================
                         RENTAL

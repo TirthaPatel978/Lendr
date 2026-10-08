@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 import {
     ArrowRight,
     MapPin,
@@ -6,12 +8,44 @@ import {
     Repeat2
 } from 'lucide-react';
 
-import { Link } from 'react-router-dom';
-
+import { Link, createSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 function Home() {
     const { user } = useAuth();
+    const [communityStats, setCommunityStats] = useState(null);
+    const [statsLoading, setStatsLoading] = useState(true);
+    const [statsError, setStatsError] = useState(false);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchCommunityStats = async () => {
+            try {
+                const response = await api.get('/stats/community');
+
+                if (isMounted) {
+                    setCommunityStats(response.data);
+                    setStatsError(false);
+                }
+            } catch (error) {
+                console.error('Failed to load community statistics:', error);
+
+                if (isMounted) {
+                    setStatsError(true);
+                }
+            } finally {
+                if (isMounted) {
+                    setStatsLoading(false);
+                }
+            }
+        };
+
+        fetchCommunityStats();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
     return (
         <main className="home">
 
@@ -162,26 +196,50 @@ function Home() {
                     <div className="category-grid">
 
                         <Category
-                            title="Power tools"
+                            title="Power Tools"
                             description="Drills, sanders, saws and more."
                             className="category-blue"
                         />
 
                         <Category
-                            title="Home & garden"
-                            description="Ladders, cleaners and equipment."
+                            title="Home & Garden"
+                            description="Ladders, cleaners and home equipment."
                             className="category-green"
                         />
 
                         <Category
                             title="Outdoor"
-                            description="Camping, recreation and more."
+                            description="Camping gear and outdoor equipment."
                             className="category-sand"
                         />
 
                         <Category
-                            title="Everyday tools"
-                            description="Useful things for occasional jobs."
+                            title="Everyday Tools"
+                            description="Useful tools for occasional jobs."
+                            className="category-lilac"
+                        />
+
+                        <Category
+                            title="Sports"
+                            description="Equipment for sports and fitness."
+                            className="category-blue"
+                        />
+
+                        <Category
+                            title="Recreational"
+                            description="Equipment for hobbies and leisure."
+                            className="category-green"
+                        />
+
+                        <Category
+                            title="Photography"
+                            description="Photography gear and accessories."
+                            className="category-sand"
+                        />
+
+                        <Category
+                            title="Other"
+                            description="Discover other useful community items."
                             className="category-lilac"
                         />
 
@@ -190,6 +248,108 @@ function Home() {
                 </div>
             </section>
 
+            {/* COMMUNITY STATISTICS */}
+
+            <section className="community-stats-section">
+                <div className="home-container">
+                    <div className="community-stats-heading">
+                        <p className="eyebrow">OUR COMMUNITY</p>
+
+                        <h2 className="section-title">
+                            Sharing more.
+                            <br />
+                            Wasting less.
+                        </h2>
+
+                        <p className="section-description">
+                            Every listing gives useful equipment another purpose
+                            and helps neighbours get more out of what they already have.
+                        </p>
+                    </div>
+
+                    {statsLoading ? (
+                        <p className="community-stats-message" role="status">
+                            Loading community statistics...
+                        </p>
+                    ) : statsError || !communityStats ? (
+                        <p className="community-stats-message" role="status">
+                            Community statistics are temporarily unavailable.
+                        </p>
+                    ) : (
+                        <>
+                            <div className="community-stats-grid">
+                                <article className="community-stat-card">
+                                    <span className="community-stat-number">
+                                        {communityStats.totalUsers.toLocaleString('en-IN')}
+                                    </span>
+                                    <span className="community-stat-label">
+                                        Community members
+                                    </span>
+                                    <span className="community-stat-detail">
+                                        People sharing within their community
+                                    </span>
+                                </article>
+
+                                <article className="community-stat-card">
+                                    <span className="community-stat-number">
+                                        {communityStats.totalItems.toLocaleString('en-IN')}
+                                    </span>
+                                    <span className="community-stat-label">
+                                        Equipment listed
+                                    </span>
+                                    <span className="community-stat-detail">
+                                        Active listings on Lendr
+                                    </span>
+                                </article>
+
+                                <article className="community-stat-card">
+                                    <span className="community-stat-number">
+                                        {communityStats.completedBorrowings.toLocaleString('en-IN')}
+                                    </span>
+                                    <span className="community-stat-label">
+                                        Successful rentals
+                                    </span>
+                                    <span className="community-stat-detail">
+                                        Borrowings completed successfully
+                                    </span>
+                                </article>
+
+                                <article className="community-stat-card">
+                                    <span className="community-stat-number">
+                                        {communityStats.totalSharingDays.toLocaleString('en-IN')}
+                                    </span>
+                                    <span className="community-stat-label">
+                                        Equipment-sharing days
+                                    </span>
+                                    <span className="community-stat-detail">
+                                        Days across completed borrowing periods
+                                    </span>
+                                </article>
+                            </div>
+
+                            {communityStats.popularCategories?.length > 0 && (
+                                <div className="community-popular-categories">
+                                    <p className="community-popular-title">
+                                        What our community shares
+                                    </p>
+
+                                    <div className="community-category-list">
+                                        {communityStats.popularCategories.map((category) => (
+                                            <span
+                                                className="community-category-chip"
+                                                key={category.category}
+                                            >
+                                                {category.category}
+                                                <span>{category.count}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </section>
 
             {/* HOW IT WORKS */}
 
@@ -290,32 +450,44 @@ function Home() {
 }
 
 function Category({
-    title,
-    description,
-    className
+title,
+description,
+className
 }) {
-    return (
-        <article className={`category-card ${className}`}>
+return (
+<Link
+to={{
+pathname: '/browse',
+search: createSearchParams({
+category: title
+}).toString()
+}}
+className={`category-card ${className}`}
+aria-label={`Browse ${title} equipment`}
+>
 
-            <div>
-                <p className="category-label">
-                    LENDR CATEGORY
-                </p>
+        <div>
+            <p className="category-label">
+                LENDR CATEGORY
+            </p>
 
-                <h3 className="category-title">
-                    {title}
-                </h3>
+            <h3 className="category-title">
+                {title}
+            </h3>
 
-                <p className="category-description">
-                    {description}
-                </p>
-            </div>
+            <p className="category-description">
+                {description}
+            </p>
+        </div>
 
-            <div className="category-object" />
+        <div className="category-object" />
 
-        </article>
-    );
+    </Link>
+);
+
+
 }
+
 
 function Process({
     number,

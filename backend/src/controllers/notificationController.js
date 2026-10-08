@@ -5,10 +5,12 @@ const Notification = require('../models/Notification');
 // GET MY NOTIFICATIONS
 // ============================================
 
+
 const getMyNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({
-            recipient: req.user
+            recipient: req.user,
+            isRead: false
         })
             .populate('relatedBorrowing')
             .populate('relatedItem')

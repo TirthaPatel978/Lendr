@@ -70,10 +70,12 @@ router.get(
 // UPDATE ITEM
 // ============================================
 
+
 router.put(
     '/:id',
     protect,
     validateObjectId('id'),
+    upload.array('photos', 5),
     updateItem
 );
 

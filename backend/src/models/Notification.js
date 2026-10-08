@@ -8,18 +8,32 @@ const notificationSchema = new mongoose.Schema(
             required: true
         },
 
+        sender: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+
         type: {
             type: String,
             enum: [
                 'BORROW_REQUEST',
                 'REQUEST_APPROVED',
                 'REQUEST_REJECTED',
+
                 'PAYMENT_COMPLETED',
+                'DAMAGE_PAYMENT_COMPLETED',
+
                 'ITEM_RETURNED',
                 'BORROWING_COMPLETED',
+
                 'DUE_TOMORROW',
                 'DUE_TODAY',
                 'OVERDUE',
+
+                'DISPUTE_CREATED',
+                'DISPUTE_UPDATED',
+
                 'ITEM_REMOVED'
             ],
             required: true
@@ -49,6 +63,12 @@ const notificationSchema = new mongoose.Schema(
             default: null
         },
 
+        relatedDispute: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Dispute',
+            default: null
+        },
+
         isRead: {
             type: Boolean,
             default: false
@@ -59,25 +79,28 @@ const notificationSchema = new mongoose.Schema(
     }
 );
 
-
-/*
- * Fetch a user's notifications newest first.
- */
 notificationSchema.index({
     recipient: 1,
     createdAt: -1
 });
 
-
-/*
- * Efficient unread notification lookup.
- */
 notificationSchema.index({
     recipient: 1,
     isRead: 1,
     createdAt: -1
 });
 
+notificationSchema.index({
+    relatedBorrowing: 1
+});
+
+notificationSchema.index({
+    relatedItem: 1
+});
+
+notificationSchema.index({
+    relatedDispute: 1
+});
 
 module.exports = mongoose.model(
     'Notification',

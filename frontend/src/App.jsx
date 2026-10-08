@@ -19,7 +19,9 @@ import Notifications from './pages/Notifications';
 import Reviews from './pages/Reviews';
 import Disputes from './pages/Disputes';
 import Admin from './pages/Admin';
-
+import HowItWorks from './pages/HowItWorks';
+import About from './pages/About';
+import Footer from './components/Footer';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -69,7 +71,15 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+                <Route
+                    path="/how-it-works"
+                    element={<HowItWorks />}
+                />
 
+                <Route
+                    path="/about"
+                    element={<About />}
+                />
                 <Route
                     path="/profile"
                     element={
@@ -153,6 +163,8 @@ function App() {
                 />
 
             </Routes>
+
+            <Footer />
 
         </BrowserRouter>
     );

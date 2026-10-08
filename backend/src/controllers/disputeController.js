@@ -32,7 +32,21 @@ const createDispute = async (req, res) => {
         // ------------------------------------------
 
         const borrowing =
-            await Borrowing.findById(borrowingId);
+            await Borrowing.findById(
+                borrowingId
+            )
+                .populate(
+                    'item',
+                    'name category photos'
+                )
+                .populate(
+                    'borrower',
+                    'name email avatar'
+                )
+                .populate(
+                    'lender',
+                    'name email avatar'
+                );
 
         if (!borrowing) {
             return res.status(404).json({
@@ -61,12 +75,17 @@ const createDispute = async (req, res) => {
         const currentUserId =
             req.user.toString();
 
+        /*
+         * borrower and lender are populated above,
+         * so compare their _id values instead of
+         * calling toString() directly on the objects.
+         */
         const isBorrower =
-            borrowing.borrower.toString() ===
+            borrowing.borrower?._id?.toString() ===
             currentUserId;
 
         const isLender =
-            borrowing.lender.toString() ===
+            borrowing.lender?._id?.toString() ===
             currentUserId;
 
         if (!isBorrower && !isLender) {
@@ -83,6 +102,14 @@ const createDispute = async (req, res) => {
         const againstUser = isBorrower
             ? borrowing.lender
             : borrowing.borrower;
+
+        // ------------------------------------------
+        // DETERMINE REPORTER NAME
+        // ------------------------------------------
+
+        const reporterName = isBorrower
+            ? borrowing.borrower?.name
+            : borrowing.lender?.name;
 
         // ------------------------------------------
         // PREVENT DUPLICATE ACTIVE DISPUTES
@@ -152,16 +179,17 @@ const createDispute = async (req, res) => {
         // ------------------------------------------
         // DETERMINE DAMAGE PAYMENT STATUS
         // ------------------------------------------
-        //
-        // No damage fee:
-        //     NOT_REQUIRED
-        //
-        // Damage fee exists:
-        //     PENDING
-        //
-        // The accused user will be able to
-        // simulate payment later.
-        // ------------------------------------------
+
+        /*
+         * No damage fee:
+         *     NOT_REQUIRED
+         *
+         * Damage fee exists:
+         *     PENDING
+         *
+         * The accused user will be able to
+         * simulate payment later.
+         */
 
         const damagePaymentStatus =
             finalDamageAmount > 0
@@ -176,11 +204,12 @@ const createDispute = async (req, res) => {
             await Dispute.create({
                 borrowing: borrowingId,
 
-                item: borrowing.item,
+                item: borrowing.item?._id,
 
                 reportedBy: req.user,
 
-                againstUser,
+                againstUser:
+                    againstUser?._id,
 
                 reason,
 
@@ -211,23 +240,42 @@ const createDispute = async (req, res) => {
         // ------------------------------------------
 
         await createNotification({
-            recipient: againstUser,
+            recipient:
+                againstUser?._id,
 
-            type: 'BORROWING_COMPLETED',
+            sender:
+                req.user,
+
+            type:
+                'DISPUTE_CREATED',
 
             title:
-                'A dispute has been reported',
+                'New dispute reported',
 
             message:
-                finalDamageAmount > 0
-                    ? `A dispute has been reported for this borrowing with a damage amount of ₹${finalDamageAmount.toLocaleString('en-IN')}.`
-                    : 'A dispute has been reported for this borrowing.',
+                `${reporterName || 'A user'} reported a ${
+                    dispute.reason
+                        ?.toLowerCase()
+                        .replace(/_/g, ' ')
+                } issue involving ${
+                    borrowing.item?.name ||
+                    'your equipment'
+                }${
+                    Number(dispute.damageAmount || 0) > 0
+                        ? ` with a damage amount of ₹${Number(
+                            dispute.damageAmount
+                        ).toLocaleString('en-IN')}.`
+                        : '.'
+                }`,
 
             relatedBorrowing:
                 borrowing._id,
 
             relatedItem:
-                borrowing.item
+                borrowing.item?._id,
+
+            relatedDispute:
+                dispute._id
         });
 
         // ------------------------------------------
@@ -283,14 +331,6 @@ const createDispute = async (req, res) => {
 
 // ==========================================
 // GET MY DISPUTES
-// ==========================================
-//
-// Normal users can see disputes where they are:
-// - reporter
-// - accused
-//
-// Admin access is also allowed because the
-// admin dashboard can use this endpoint.
 // ==========================================
 const getMyDisputes = async (req, res) => {
     try {
@@ -351,12 +391,6 @@ const getMyDisputes = async (req, res) => {
 // ==========================================
 // GET SINGLE DISPUTE
 // ==========================================
-//
-// Allowed:
-// - Reporter
-// - Accused
-// - Admin
-// ==========================================
 const getDisputeById = async (
     req,
     res
@@ -398,29 +432,12 @@ const getDisputeById = async (
         const currentUserId =
             req.user.toString();
 
-        /*
-         * req.user is normally the user ID because
-         * authMiddleware sets req.user to the
-         * authenticated user's ObjectId.
-         *
-         * Therefore, admin access should be checked
-         * using the actual user document if needed.
-         *
-         * For normal participants:
-         */
         const isInvolved =
-            dispute.reportedBy._id.toString() ===
+            dispute.reportedBy?._id?.toString() ===
                 currentUserId ||
-            dispute.againstUser._id.toString() ===
+            dispute.againstUser?._id?.toString() ===
                 currentUserId;
 
-        /*
-         * If the request is from a participant,
-         * allow access.
-         *
-         * Admin dashboard will use the admin-specific
-         * routes / middleware for administrative actions.
-         */
         if (!isInvolved) {
             return res.status(403).json({
                 message:
@@ -451,24 +468,6 @@ const getDisputeById = async (
 
 // ==========================================
 // UPDATE DISPUTE STATUS
-// ==========================================
-//
-// IMPORTANT:
-//
-// This function is now ADMIN ONLY.
-//
-// The route must use:
-//
-// protect,
-// adminMiddleware
-//
-// before reaching this controller.
-//
-// Normal users CANNOT:
-// - change status
-// - resolve dispute
-// - reject dispute
-// - add resolution
 // ==========================================
 const updateDisputeStatus = async (
     req,
@@ -516,7 +515,19 @@ const updateDisputeStatus = async (
         const dispute =
             await Dispute.findById(
                 req.params.id
-            );
+            )
+                .populate(
+                    'item',
+                    'name category photos'
+                )
+                .populate(
+                    'reportedBy',
+                    'name email avatar'
+                )
+                .populate(
+                    'againstUser',
+                    'name email avatar'
+                );
 
         if (!dispute) {
             return res.status(404).json({
@@ -602,33 +613,49 @@ const updateDisputeStatus = async (
 
         await createNotification({
             recipient:
-                dispute.reportedBy,
+                dispute.reportedBy?._id,
+
+            sender:
+                req.user,
 
             type:
-                status === 'RESOLVED'
-                    ? 'BORROWING_COMPLETED'
-                    : 'ITEM_RETURNED',
+                'DISPUTE_UPDATED',
 
             title:
                 status === 'RESOLVED'
                     ? 'Dispute resolved'
-                    : 'Dispute status updated',
+                    : status === 'REJECTED'
+                        ? 'Dispute rejected'
+                        : 'Dispute status updated',
 
             message:
                 status === 'RESOLVED'
-                    ? 'Your dispute has been resolved by the Lendr administrator.'
-                    : `Your dispute status is now ${status
-                          .replaceAll(
-                              '_',
-                              ' '
-                          )
-                          .toLowerCase()}.`,
+                    ? `Your dispute concerning ${
+                        dispute.item?.name ||
+                        'the equipment'
+                    } has been resolved by the Lendr administrator.`
+                    : status === 'REJECTED'
+                        ? `Your dispute concerning ${
+                            dispute.item?.name ||
+                            'the equipment'
+                        } has been rejected by the Lendr administrator.`
+                        : `Your dispute concerning ${
+                            dispute.item?.name ||
+                            'the equipment'
+                        } is now ${
+                            status
+                                .toLowerCase()
+                                .replace(/_/g, ' ')
+                        }.`,
 
             relatedBorrowing:
                 dispute.borrowing,
 
             relatedItem:
-                dispute.item
+                dispute.item?._id,
+
+            relatedDispute:
+                dispute._id
         });
 
         // ------------------------------------------
@@ -637,33 +664,49 @@ const updateDisputeStatus = async (
 
         await createNotification({
             recipient:
-                dispute.againstUser,
+                dispute.againstUser?._id,
+
+            sender:
+                req.user,
 
             type:
-                status === 'RESOLVED'
-                    ? 'BORROWING_COMPLETED'
-                    : 'ITEM_RETURNED',
+                'DISPUTE_UPDATED',
 
             title:
                 status === 'RESOLVED'
                     ? 'Dispute resolved'
-                    : 'Dispute status updated',
+                    : status === 'REJECTED'
+                        ? 'Dispute rejected'
+                        : 'Dispute status updated',
 
             message:
                 status === 'RESOLVED'
-                    ? 'A dispute involving you has been resolved by the Lendr administrator.'
-                    : `A dispute involving you is now ${status
-                          .replaceAll(
-                              '_',
-                              ' '
-                          )
-                          .toLowerCase()}.`,
+                    ? `The dispute involving ${
+                        dispute.item?.name ||
+                        'the equipment'
+                    } has been resolved by the Lendr administrator.`
+                    : status === 'REJECTED'
+                        ? `The dispute involving ${
+                            dispute.item?.name ||
+                            'the equipment'
+                        } has been rejected by the Lendr administrator.`
+                        : `The dispute involving ${
+                            dispute.item?.name ||
+                            'the equipment'
+                        } is now ${
+                            status
+                                .toLowerCase()
+                                .replace(/_/g, ' ')
+                        }.`,
 
             relatedBorrowing:
                 dispute.borrowing,
 
             relatedItem:
-                dispute.item
+                dispute.item?._id,
+
+            relatedDispute:
+                dispute._id
         });
 
         // ------------------------------------------
@@ -740,7 +783,19 @@ const payDamage = async (
         const dispute =
             await Dispute.findById(
                 req.params.id
-            );
+            )
+                .populate(
+                    'item',
+                    'name category photos'
+                )
+                .populate(
+                    'reportedBy',
+                    'name email avatar'
+                )
+                .populate(
+                    'againstUser',
+                    'name email avatar'
+                );
 
         if (!dispute) {
             return res.status(404).json({
@@ -757,7 +812,7 @@ const payDamage = async (
             req.user.toString();
 
         const accusedUserId =
-            dispute.againstUser.toString();
+            dispute.againstUser?._id?.toString();
 
         if (
             accusedUserId !==
@@ -832,24 +887,33 @@ const payDamage = async (
 
         await createNotification({
             recipient:
-                dispute.reportedBy,
+                dispute.reportedBy?._id,
+
+            sender:
+                dispute.againstUser?._id,
 
             type:
-                'PAYMENT_COMPLETED',
+                'DAMAGE_PAYMENT_COMPLETED',
 
             title:
-                'Damage payment completed',
+                'Damage payment received',
 
             message:
-                `The damage payment of ₹${dispute.damageAmount.toLocaleString(
-                    'en-IN'
-                )} has been completed.`,
+                `${dispute.againstUser?.name || 'The accused user'} completed the damage payment of ₹${Number(
+                    dispute.damageAmount
+                ).toLocaleString('en-IN')} for ${
+                    dispute.item?.name ||
+                    'the equipment'
+                }.`,
 
             relatedBorrowing:
                 dispute.borrowing,
 
             relatedItem:
-                dispute.item
+                dispute.item?._id,
+
+            relatedDispute:
+                dispute._id
         });
 
         // ------------------------------------------
@@ -858,24 +922,38 @@ const payDamage = async (
 
         await createNotification({
             recipient:
-                dispute.againstUser,
+                dispute.againstUser?._id,
+
+            /*
+             * The reporter is the other participant.
+             * This avoids showing the recipient's own
+             * name as the "Person" involved.
+             */
+            sender:
+                dispute.reportedBy?._id,
 
             type:
-                'PAYMENT_COMPLETED',
+                'DAMAGE_PAYMENT_COMPLETED',
 
             title:
-                'Damage payment completed',
+                'Damage payment recorded',
 
             message:
-                `Your simulated damage payment of ₹${dispute.damageAmount.toLocaleString(
-                    'en-IN'
-                )} has been recorded.`,
+                `Your simulated damage payment of ₹${Number(
+                    dispute.damageAmount
+                ).toLocaleString('en-IN')} for ${
+                    dispute.item?.name ||
+                    'the equipment'
+                } has been recorded.`,
 
             relatedBorrowing:
                 dispute.borrowing,
 
             relatedItem:
-                dispute.item
+                dispute.item?._id,
+
+            relatedDispute:
+                dispute._id
         });
 
         // ------------------------------------------

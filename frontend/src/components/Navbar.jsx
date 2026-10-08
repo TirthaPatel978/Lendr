@@ -9,17 +9,18 @@ import {
     Search,
     UserRound,
     Bell,
-    ShieldAlert
+    ShieldCheck
 } from 'lucide-react';
 
 import { useAuth } from '../context/useAuth';
-//import './Navbar.css';
+
 function Navbar() {
     const { user, logout } = useAuth();
-
     const navigate = useNavigate();
 
     const [search, setSearch] = useState('');
+
+    const isAdmin = user?.role === 'ADMIN';
 
     const handleSearch = (event) => {
         event.preventDefault();
@@ -36,9 +37,13 @@ function Navbar() {
         );
     };
 
+    const handleLogout = async () => {
+        await logout();
+        navigate('/home');
+    };
+
     return (
         <header className="navbar">
-
             <div className="navbar-inner">
 
                 <Link
@@ -48,9 +53,7 @@ function Navbar() {
                     lendr<span>.</span>
                 </Link>
 
-
                 <nav className="navbar-center">
-
                     <Link
                         to="/home"
                         className="navbar-link"
@@ -65,28 +68,19 @@ function Navbar() {
                         Browse
                     </Link>
 
-                    <a
-                        href="/home#how-it-works"
-                        className="navbar-link"
-                    >
+                    <Link to="/how-it-works" className="navbar-link">
                         How it works
-                    </a>
+                    </Link>
 
-                    <a
-                        href="/home#about"
-                        className="navbar-link"
-                    >
+                    <Link to="/about" className="navbar-link">
                         About
-                    </a>
-
+                    </Link>
                 </nav>
-
 
                 <form
                     className="navbar-search"
                     onSubmit={handleSearch}
                 >
-
                     <Search size={16} />
 
                     <input
@@ -98,39 +92,57 @@ function Navbar() {
                         placeholder="Search equipment..."
                         aria-label="Search equipment"
                     />
-
                 </form>
 
-
                 <div className="navbar-actions">
-
                     {user ? (
                         <>
-                        <Link
-                                to="/notifications"
-                                className="navbar-link"
-                                title="Notifications"
-                            >
-                                <Bell size={17} />
-                            </Link>
+                            {!isAdmin && (
+                                <>
+                                    <Link
+                                        to="/notifications"
+                                        className="navbar-link"
+                                        title="Notifications"
+                                        aria-label="Notifications"
+                                    >
+                                        <Bell size={17} />
+                                    </Link>
+
+                                    <Link
+                                        to="/disputes"
+                                        className="navbar-link"
+                                        title="Disputes"
+                                        aria-label="Disputes"
+                                    >
+                                        <ShieldCheck size={17} />
+                                    </Link>
+                                </>
+                            )}
+
                             <Link
-                                to="/disputes"
-                                className="navbar-link"
-                                title="Disputes"
-                            >
-                                <ShieldAlert size={17} />
-                            </Link>
-                            <Link
-                                to="/dashboard"
+                                to={isAdmin ? '/admin' : '/dashboard'}
                                 className="navbar-user"
-                                aria-label="Dashboard"
+                                aria-label={
+                                    isAdmin
+                                        ? 'Admin Dashboard'
+                                        : 'Dashboard'
+                                }
+                                title={
+                                    isAdmin
+                                        ? 'Admin Dashboard'
+                                        : 'Dashboard'
+                                }
                             >
-                                <UserRound size={17} />
+                                {isAdmin ? (
+                                    <UserRound size={17} />
+                                ) : (
+                                    <ShieldCheck size={17} />
+                                )}
                             </Link>
 
                             <button
                                 type="button"
-                                onClick={logout}
+                                onClick={handleLogout}
                                 className="navbar-cta"
                             >
                                 Log out
@@ -153,11 +165,9 @@ function Navbar() {
                             </Link>
                         </>
                     )}
-
                 </div>
 
             </div>
-
         </header>
     );
 }

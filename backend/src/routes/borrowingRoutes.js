@@ -14,7 +14,8 @@ const {
 } = require('../controllers/borrowingController');
 
 const protect = require('../middleware/authMiddleware');
-
+const restrictAdminBorrowing =
+    require('../middleware/restrictAdminBorrowing');
 const {
     validateObjectId,
     validateBorrowingDates
@@ -35,6 +36,7 @@ router.get(
 router.post(
     '/',
     protect,
+    restrictAdminBorrowing,
     validateBorrowingDates,
     validateBorrowableItem,
     createBorrowingRequest

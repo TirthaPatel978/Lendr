@@ -232,16 +232,66 @@ const createBorrowingRequest = async (req, res) => {
                 status: 'REQUESTED'
             });
 
+        /*
+         * Populate the borrowing only for the
+         * notification information.
+         *
+         * This does not change the borrowing data
+         * stored in MongoDB.
+         */
+        const notificationBorrowing =
+            await Borrowing.findById(
+                borrowing._id
+            )
+                .populate(
+                    'item',
+                    'name category photos rentalType rentalPricePerDay'
+                )
+                .populate(
+                    'borrower',
+                    'name email avatar'
+                )
+                .populate(
+                    'lender',
+                    'name email avatar'
+                );
+
         await createNotification({
-            recipient: item.owner,
-            type: 'BORROW_REQUEST',
-            title: 'New borrow request',
+            recipient:
+                notificationBorrowing.lender,
+
+            sender:
+                notificationBorrowing.borrower,
+
+            type:
+                'BORROW_REQUEST',
+
+            title:
+                'New borrow request',
+
             message:
-                `You received a new borrow request for ${item.name}.`,
+                `${notificationBorrowing.borrower?.name || 'Someone'} requested ${
+                    notificationBorrowing.item?.name ||
+                    'your equipment'
+                } from ${new Date(
+                    notificationBorrowing.startDate
+                ).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                })} to ${new Date(
+                    notificationBorrowing.endDate
+                ).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                })}.`,
+
             relatedBorrowing:
-                borrowing._id,
+                notificationBorrowing._id,
+
             relatedItem:
-                item._id
+                notificationBorrowing.item?._id
         });
 
         res.status(201).json({
@@ -272,11 +322,11 @@ const getMyBorrowRequests = async (req, res) => {
             })
                 .populate(
                     'item',
-                    'name category rentalType rentalPricePerDay'
+                    'name category photos rentalType rentalPricePerDay'
                 )
                 .populate(
                     'lender',
-                    'name rating reliabilityScore'
+                    'name rating reliabilityScore avatar'
                 )
                 .sort({
                     createdAt: -1
@@ -309,11 +359,11 @@ const getLenderRequests = async (req, res) => {
             })
                 .populate(
                     'item',
-                    'name category rentalType rentalPricePerDay'
+                    'name category photos rentalType rentalPricePerDay'
                 )
                 .populate(
                     'borrower',
-                    'name rating reliabilityScore'
+                    'name rating reliabilityScore avatar'
                 )
                 .sort({
                     createdAt: -1
@@ -381,19 +431,67 @@ const approveBorrowing = async (req, res) => {
 
         await borrowing.save();
 
+        /*
+         * Populate users/item so the notification
+         * contains the other user's name and
+         * contextual equipment information.
+         */
+        const notificationBorrowing =
+            await Borrowing.findById(
+                borrowing._id
+            )
+                .populate(
+                    'item',
+                    'name category photos rentalType rentalPricePerDay'
+                )
+                .populate(
+                    'borrower',
+                    'name email avatar'
+                )
+                .populate(
+                    'lender',
+                    'name email avatar'
+                );
+
         await createNotification({
             recipient:
-                borrowing.borrower,
+                notificationBorrowing.borrower,
+
+            sender:
+                notificationBorrowing.lender,
+
             type:
                 'REQUEST_APPROVED',
+
             title:
                 'Borrow request approved',
+
             message:
-                'Your borrow request has been approved.',
+                `Your request for ${
+                    notificationBorrowing.item?.name ||
+                    'the equipment'
+                } has been approved by ${
+                    notificationBorrowing.lender?.name ||
+                    'the owner'
+                } for ${new Date(
+                    notificationBorrowing.startDate
+                ).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                })} to ${new Date(
+                    notificationBorrowing.endDate
+                ).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                })}.`,
+
             relatedBorrowing:
-                borrowing._id,
+                notificationBorrowing._id,
+
             relatedItem:
-                borrowing.item
+                notificationBorrowing.item?._id
         });
 
         res.json({
@@ -459,19 +557,50 @@ const rejectBorrowing = async (req, res) => {
 
         await borrowing.save();
 
+        const notificationBorrowing =
+            await Borrowing.findById(
+                borrowing._id
+            )
+                .populate(
+                    'item',
+                    'name category photos rentalType rentalPricePerDay'
+                )
+                .populate(
+                    'borrower',
+                    'name email avatar'
+                )
+                .populate(
+                    'lender',
+                    'name email avatar'
+                );
+
         await createNotification({
             recipient:
-                borrowing.borrower,
+                notificationBorrowing.borrower,
+
+            sender:
+                notificationBorrowing.lender,
+
             type:
                 'REQUEST_REJECTED',
+
             title:
-                'Borrow request rejected',
+                'Borrow request declined',
+
             message:
-                'Your borrow request has been rejected.',
+                `Your request for ${
+                    notificationBorrowing.item?.name ||
+                    'the equipment'
+                } was declined by ${
+                    notificationBorrowing.lender?.name ||
+                    'the owner'
+                }.`,
+
             relatedBorrowing:
-                borrowing._id,
+                notificationBorrowing._id,
+
             relatedItem:
-                borrowing.item
+                notificationBorrowing.item?._id
         });
 
         res.json({
@@ -555,19 +684,49 @@ const makePayment = async (req, res) => {
         if (
             borrowing.totalAmount > 0
         ) {
+            const notificationBorrowing =
+                await Borrowing.findById(
+                    borrowing._id
+                )
+                    .populate(
+                        'item',
+                        'name category photos rentalType rentalPricePerDay'
+                    )
+                    .populate(
+                        'borrower',
+                        'name email avatar'
+                    )
+                    .populate(
+                        'lender',
+                        'name email avatar'
+                    );
+
             await createNotification({
                 recipient:
-                    borrowing.lender,
+                    notificationBorrowing.lender,
+
+                sender:
+                    notificationBorrowing.borrower,
+
                 type:
                     'PAYMENT_COMPLETED',
+
                 title:
-                    'Payment completed',
+                    'Rental payment received',
+
                 message:
-                    `Payment of ₹${borrowing.totalAmount} has been completed.`,
+                    `${notificationBorrowing.borrower?.name || 'The borrower'} completed a rental payment of ₹${Number(
+                        notificationBorrowing.totalAmount
+                    ).toLocaleString('en-IN')} for ${
+                        notificationBorrowing.item?.name ||
+                        'your equipment'
+                    }.`,
+
                 relatedBorrowing:
-                    borrowing._id,
+                    notificationBorrowing._id,
+
                 relatedItem:
-                    borrowing.item
+                    notificationBorrowing.item?._id
             });
         }
 
@@ -640,19 +799,52 @@ const returnItem = async (req, res) => {
 
         await borrowing.save();
 
+        const notificationBorrowing =
+            await Borrowing.findById(
+                borrowing._id
+            )
+                .populate(
+                    'item',
+                    'name category photos rentalType rentalPricePerDay'
+                )
+                .populate(
+                    'borrower',
+                    'name email avatar'
+                )
+                .populate(
+                    'lender',
+                    'name email avatar'
+                );
+
+        /*
+         * The borrower is the person who normally
+         * causes the return notification, so keep
+         * borrower as sender just as before.
+         */
         await createNotification({
             recipient:
-                borrowing.lender,
+                notificationBorrowing.lender,
+
+            sender:
+                notificationBorrowing.borrower,
+
             type:
                 'ITEM_RETURNED',
+
             title:
-                'Item returned',
+                'Equipment returned',
+
             message:
-                'The borrowed item has been marked as returned.',
+                `${notificationBorrowing.borrower?.name || 'The borrower'} marked ${
+                    notificationBorrowing.item?.name ||
+                    'the equipment'
+                } as returned.`,
+
             relatedBorrowing:
-                borrowing._id,
+                notificationBorrowing._id,
+
             relatedItem:
-                borrowing.item
+                notificationBorrowing.item?._id
         });
 
         res.json({
@@ -714,19 +906,50 @@ const completeBorrowing = async (req, res) => {
 
         await borrowing.save();
 
+        const notificationBorrowing =
+            await Borrowing.findById(
+                borrowing._id
+            )
+                .populate(
+                    'item',
+                    'name category photos rentalType rentalPricePerDay'
+                )
+                .populate(
+                    'borrower',
+                    'name email avatar'
+                )
+                .populate(
+                    'lender',
+                    'name email avatar'
+                );
+
         await createNotification({
             recipient:
-                borrowing.borrower,
+                notificationBorrowing.borrower,
+
+            sender:
+                notificationBorrowing.lender,
+
             type:
                 'BORROWING_COMPLETED',
+
             title:
                 'Borrowing completed',
+
             message:
-                'Your borrowing has been completed successfully.',
+                `Your borrowing of ${
+                    notificationBorrowing.item?.name ||
+                    'the equipment'
+                } has been completed by ${
+                    notificationBorrowing.lender?.name ||
+                    'the owner'
+                }. `,
+
             relatedBorrowing:
-                borrowing._id,
+                notificationBorrowing._id,
+
             relatedItem:
-                borrowing.item
+                notificationBorrowing.item?._id
         });
 
         res.json({

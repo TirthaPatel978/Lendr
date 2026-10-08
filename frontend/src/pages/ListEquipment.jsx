@@ -109,7 +109,20 @@ function ListEquipment() {
             }
         );
     };
+    const handleLocationChange = (event) => {
+        const { name, value } = event.target;
 
+        setLocation((current) => ({
+            ...current,
+            [name]: value
+        }));
+
+        setLocationStatus(
+            'Manual coordinates entered.'
+        );
+
+        setError('');
+    };
     const validateForm = () => {
         if (!form.name.trim()) {
             return 'Equipment name is required.';
@@ -135,11 +148,25 @@ function ListEquipment() {
             }
         }
 
+        const latitude = Number(location.latitude);
+        const longitude = Number(location.longitude);
+
         if (
-            !Number.isFinite(Number(location.latitude)) ||
-            !Number.isFinite(Number(location.longitude))
+            location.latitude === '' ||
+            !Number.isFinite(latitude) ||
+            latitude < -90 ||
+            latitude > 90
         ) {
-            return 'Please capture your pickup location.';
+            return 'Enter a valid latitude between -90 and 90.';
+        }
+
+        if (
+            location.longitude === '' ||
+            !Number.isFinite(longitude) ||
+            longitude < -180 ||
+            longitude > 180
+        ) {
+            return 'Enter a valid longitude between -180 and 180.';
         }
 
         return '';
@@ -652,9 +679,7 @@ function ListEquipment() {
                             </div>
 
                             <div>
-                                <span>
-                                    PICKUP LOCATION
-                                </span>
+                                <span>PICKUP LOCATION</span>
 
                                 <h2>
                                     Where can people collect it?
@@ -676,14 +701,15 @@ function ListEquipment() {
                                 </strong>
 
                                 <p>
-                                    Your exact coordinates are used
-                                    for nearby equipment search.
+                                    Automatically capture your coordinates
+                                    or enter them manually below.
                                 </p>
 
                                 {locationStatus && (
                                     <span
                                         className={
-                                            location.latitude
+                                            location.latitude !== '' &&
+                                            location.longitude !== ''
                                                 ? 'location-success'
                                                 : 'location-error'
                                         }
@@ -702,21 +728,60 @@ function ListEquipment() {
                             >
                                 {loadingLocation
                                     ? 'Locating...'
-                                    : location.latitude
-                                        ? 'Location captured'
-                                        : 'Use my location'}
+                                    : 'Use my location'}
                             </button>
+
+                        </div>
+
+                        <div className="listing-location-divider">
+                            OR ENTER MANUALLY
+                        </div>
+
+                        <div className="listing-fields listing-location-fields">
+
+                            <label className="listing-field">
+
+                                <span>Latitude</span>
+
+                                <input
+                                    type="number"
+                                    name="latitude"
+                                    value={location.latitude}
+                                    onChange={handleLocationChange}
+                                    step="any"
+                                    min="-90"
+                                    max="90"
+                                    placeholder="e.g. 23.0225"
+                                />
+
+                            </label>
+
+                            <label className="listing-field">
+
+                                <span>Longitude</span>
+
+                                <input
+                                    type="number"
+                                    name="longitude"
+                                    value={location.longitude}
+                                    onChange={handleLocationChange}
+                                    step="any"
+                                    min="-180"
+                                    max="180"
+                                    placeholder="e.g. 72.5714"
+                                />
+
+                            </label>
 
                         </div>
 
                     </section>
 
-                    {error && (
 
-                        <div className="listing-error">
+                    {error && (
+                        <div className="listing-error" role="alert">
                             {error}
                         </div>
-
                     )}
 
                     <div className="listing-submit-area">

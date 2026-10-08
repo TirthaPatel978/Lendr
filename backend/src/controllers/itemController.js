@@ -2,6 +2,7 @@ const Item = require('../models/Item');
 const Borrowing = require('../models/Borrowing');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
+const cloudinary = require('../config/cloudinary');
 const buildLocation = (location, latitude, longitude) => {
     if (
         latitude !== undefined &&
@@ -284,26 +285,20 @@ const getItemById = async (req, res) => {
 // UPDATE ITEM
 // ---------------------------------------------
 
+
 const updateItem = async (req, res) => {
     try {
-        const item =
-            await Item.findById(req.params.id);
+        const item = await Item.findById(req.params.id);
 
         if (!item) {
             return res.status(404).json({
-                message:
-                    'Item not found'
+                message: 'Item not found'
             });
         }
 
-        // Owner-only protection
-        if (
-            item.owner.toString() !==
-            req.user.toString()
-        ) {
+        if (item.owner.toString() !== req.user.toString()) {
             return res.status(403).json({
-                message:
-                    'You are not allowed to update this item'
+                message: 'You are not allowed to update this item'
             });
         }
 
@@ -318,50 +313,61 @@ const updateItem = async (req, res) => {
             availability,
             location,
             latitude,
-            longitude
+            longitude,
+            photosToKeep
         } = req.body;
 
-        if (
-            name !== undefined
-        ) {
-            item.name =
-                name.trim();
+        if (name !== undefined) {
+            if (!name.trim()) {
+                return res.status(400).json({
+                    message: 'Equipment name is required'
+                });
+            }
+            item.name = name.trim();
         }
 
-        if (
-            category !== undefined
-        ) {
-            item.category =
-                category.trim();
+        if (category !== undefined) {
+            if (!category.trim()) {
+                return res.status(400).json({
+                    message: 'Category is required'
+                });
+            }
+            item.category = category.trim();
         }
 
-        if (
-            description !== undefined
-        ) {
-            item.description =
-                description.trim();
+        if (description !== undefined) {
+            if (!description.trim()) {
+                return res.status(400).json({
+                    message: 'Description is required'
+                });
+            }
+            item.description = description.trim();
         }
 
-        if (
-            condition !== undefined
-        ) {
-            item.condition =
-                condition;
+        if (condition !== undefined) {
+            if (!['EXCELLENT', 'GOOD', 'FAIR', 'POOR'].includes(condition)) {
+                return res.status(400).json({
+                    message: 'Invalid equipment condition'
+                });
+            }
+            item.condition = condition;
         }
 
-        if (
-            originalValue !== undefined
-        ) {
-            item.originalValue =
-                Number(originalValue) || 0;
+        if (originalValue !== undefined) {
+            const value = Number(originalValue);
+
+            if (!Number.isFinite(value) || value < 0) {
+                return res.status(400).json({
+                    message: 'Original value must be zero or greater'
+                });
+            }
+
+            item.originalValue = value;
         }
 
-        if (
-            availability !== undefined
-        ) {
+        if (availability !== undefined) {
             item.availability =
-                availability === true ||
-                availability === 'true';
+                availability === true || availability === 'true';
         }
 
         const locationWasProvided =
@@ -370,113 +376,193 @@ const updateItem = async (req, res) => {
             longitude !== undefined;
 
         if (locationWasProvided) {
-            const updatedLocation =
-                buildLocation(
-                    location,
-                    latitude,
-                    longitude
-                );
+            const updatedLocation = buildLocation(
+                location,
+                latitude,
+                longitude
+            );
 
             if (!updatedLocation) {
                 return res.status(400).json({
-                    message:
-                        'A valid location is required'
+                    message: 'A valid location is required'
                 });
             }
 
-            item.location =
-                updatedLocation;
+            item.location = updatedLocation;
         }
 
-        if (
-            rentalType !== undefined
-        ) {
-            if (
-                !['FREE', 'PAID']
-                    .includes(rentalType)
-            ) {
+        if (rentalType !== undefined) {
+            if (!['FREE', 'PAID'].includes(rentalType)) {
                 return res.status(400).json({
-                    message:
-                        'Rental type must be FREE or PAID'
+                    message: 'Rental type must be FREE or PAID'
                 });
             }
 
-            item.rentalType =
-                rentalType;
+            item.rentalType = rentalType;
+        }
 
-            if (
-                rentalType === 'FREE'
-            ) {
-                item.rentalPricePerDay =
-                    0;
+        if (rentalPricePerDay !== undefined) {
+            const price = Number(rentalPricePerDay);
 
-            } else {
-                if (
-                    rentalPricePerDay ===
-                        undefined ||
-                    Number(
-                        rentalPricePerDay
-                    ) <= 0
-                ) {
-                    return res.status(400).json({
-                        message:
-                            'Paid items must have a rental price greater than 0'
-                    });
-                }
-
-                item.rentalPricePerDay =
-                    Number(
-                        rentalPricePerDay
-                    );
+            if (!Number.isFinite(price) || price < 0) {
+                return res.status(400).json({
+                    message: 'Rental price must be zero or greater'
+                });
             }
 
+            item.rentalPricePerDay = price;
+        }
+
+        if (item.rentalType === 'FREE') {
+            item.rentalPricePerDay = 0;
         } else if (
-            rentalPricePerDay !==
-            undefined
+            item.rentalPricePerDay === undefined ||
+            item.rentalPricePerDay <= 0
         ) {
-            if (
-                item.rentalType ===
-                    'PAID' &&
-                Number(
-                    rentalPricePerDay
-                ) <= 0
-            ) {
+            return res.status(400).json({
+                message: 'Paid items must have a rental price greater than 0'
+            });
+        }
+
+        // Preserve existing photos unless the frontend explicitly
+        // submits the URLs it wants to keep.
+        let photosToRetain = item.photos || [];
+
+        if (photosToKeep !== undefined) {
+            let parsedPhotos;
+
+            try {
+                parsedPhotos = JSON.parse(photosToKeep);
+            } catch {
                 return res.status(400).json({
-                    message:
-                        'Rental price must be greater than 0'
+                    message: 'Invalid photo list'
                 });
             }
 
-            item.rentalPricePerDay =
-                item.rentalType ===
-                    'PAID'
-                    ? Number(
-                        rentalPricePerDay
+            if (!Array.isArray(parsedPhotos)) {
+                return res.status(400).json({
+                    message: 'Photo list must be an array'
+                });
+            }
+
+            // Only accept URLs that already belong to this item.
+            const originalPhotos = item.photos || [];
+            photosToRetain = [
+                ...new Set(
+                    parsedPhotos.filter(
+                        url =>
+                            typeof url === 'string' &&
+                            originalPhotos.includes(url)
                     )
-                    : 0;
+                )
+            ];
         }
+
+        const uploadedFiles = req.files || [];
+
+        if (photosToRetain.length + uploadedFiles.length > 5) {
+            return res.status(400).json({
+                message: 'A maximum of 5 photos is allowed per listing'
+            });
+        }
+
+        const oldPhotos = [...(item.photos || [])];
+        const newlyUploadedUrls = [];
+
+        try {
+            for (const file of uploadedFiles) {
+                const result = await uploadToCloudinary(
+                    file.buffer,
+                    'lendr/items'
+                );
+
+                newlyUploadedUrls.push(result.secure_url);
+            }
+        } catch (uploadError) {
+            // Avoid leaving successfully uploaded files behind if a
+            // later file in the same upload fails.
+            for (const url of newlyUploadedUrls) {
+                const publicId = getCloudinaryPublicId(url);
+
+                if (publicId) {
+                    await cloudinary.uploader
+                        .destroy(publicId)
+                        .catch(() => {});
+                }
+            }
+
+            throw uploadError;
+        }
+
+        item.photos = [
+            ...photosToRetain,
+            ...newlyUploadedUrls
+        ];
 
         await item.save();
 
-        res.json({
-            message:
-                'Item updated successfully',
+        // Delete removed images from Cloudinary after the database
+        // update succeeds. A cleanup failure won't undo the save.
+        const removedPhotos = oldPhotos.filter(
+            url => !item.photos.includes(url)
+        );
 
+        for (const url of removedPhotos) {
+            const publicId = getCloudinaryPublicId(url);
+
+            if (publicId) {
+                try {
+                    await cloudinary.uploader.destroy(publicId);
+                } catch (cleanupError) {
+                    console.error(
+                        'Could not delete removed Cloudinary image:',
+                        cleanupError.message
+                    );
+                }
+            }
+        }
+
+        res.json({
+            message: 'Item updated successfully',
             item
         });
 
     } catch (error) {
-        console.error(
-            'Update item error:',
-            error
-        );
+        console.error('Update item error:', error);
 
         res.status(500).json({
-            message:
-                'Failed to update item',
-
+            message: 'Failed to update item',
             error: error.message
         });
+    }
+};
+
+// Extract a Cloudinary public ID from a secure URL.
+// Supports URLs containing a version number and file extension.
+const getCloudinaryPublicId = (imageUrl) => {
+    try {
+        const url = new URL(imageUrl);
+        const uploadMarker = '/upload/';
+        const uploadIndex = url.pathname.indexOf(uploadMarker);
+
+        if (
+            !url.hostname.endsWith('cloudinary.com') ||
+            uploadIndex === -1
+        ) {
+            return null;
+        }
+
+        let path = url.pathname.slice(
+            uploadIndex + uploadMarker.length
+        );
+
+        // Remove optional version segment, e.g. v1234567890/
+        path = path.replace(/^v\d+\//, '');
+
+        // Remove the file extension.
+        return path.replace(/\.[^/.]+$/, '') || null;
+    } catch {
+        return null;
     }
 };
 

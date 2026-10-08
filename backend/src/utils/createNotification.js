@@ -1,72 +1,122 @@
 const Notification = require('../models/Notification');
-
-
-// ============================================
-// CREATE NOTIFICATION
-// ============================================
+const Borrowing = require('../models/Borrowing');
 
 const createNotification = async ({
     recipient,
+    sender = null,
+
     type,
-    title = null,
+
+    title = '',
     message,
-    borrowing = null,
+
     relatedBorrowing = null,
-    relatedItem = null
+    relatedItem = null,
+    relatedDispute = null,
+
+    // Backward compatibility with older notification calls
+    borrowing = null,
+    item = null
 }) => {
-
     try {
-
-        // Use relatedBorrowing if supplied.
-        // Otherwise support the older "borrowing" argument
-        // so existing borrowing code continues to work.
-        const borrowingId =
+        const finalBorrowing =
             relatedBorrowing || borrowing || null;
 
+        const finalItem =
+            relatedItem || item || null;
 
-        // Default titles based on notification type.
-        const notificationTitles = {
-            BORROW_REQUEST: 'New borrow request',
-            REQUEST_APPROVED: 'Borrow request approved',
-            REQUEST_REJECTED: 'Borrow request rejected',
-            PAYMENT_COMPLETED: 'Payment completed',
-            ITEM_RETURNED: 'Item returned',
-            BORROWING_COMPLETED: 'Borrowing completed',
-            DUE_TOMORROW: 'Item due tomorrow',
-            DUE_TODAY: 'Item due today',
-            OVERDUE: 'Item is overdue',
-            ITEM_REMOVED: 'Your listing was removed'
-        };
+        let finalSender = sender;
 
+        /*
+         * If the caller did not explicitly provide a sender,
+         * try to determine the other participant from the borrowing.
+         *
+         * This preserves existing notification behavior while
+         * giving newer notifications a useful sender relationship.
+         */
+        if (!finalSender && finalBorrowing) {
+            const borrowingRecord =
+                await Borrowing.findById(
+                    finalBorrowing
+                ).select(
+                    'borrower lender'
+                );
 
-        const notificationTitle =
+            if (borrowingRecord) {
+                const recipientId =
+                    recipient.toString();
+
+                if (
+                    borrowingRecord.borrower &&
+                    borrowingRecord.borrower.toString() !==
+                        recipientId
+                ) {
+                    finalSender =
+                        borrowingRecord.borrower;
+                } else if (
+                    borrowingRecord.lender &&
+                    borrowingRecord.lender.toString() !==
+                        recipientId
+                ) {
+                    finalSender =
+                        borrowingRecord.lender;
+                }
+            }
+        }
+
+        /*
+         * Keep a sensible fallback title for older calls
+         * which did not previously provide one.
+         */
+        const finalTitle =
             title ||
-            notificationTitles[type] ||
-            'New notification';
+            type
+                ?.toLowerCase()
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (letter) =>
+                    letter.toUpperCase()
+                ) ||
+            'Lendr notification';
 
+        const notification =
+            await Notification.create({
+                recipient,
 
-        const notificationData = {
-            recipient,
-            type,
-            title: notificationTitle,
-            message,
-            relatedBorrowing: borrowingId,
-            relatedItem,
-            isRead: false
-        };
+                sender: finalSender,
 
+                type,
 
-        await Notification.create(notificationData);
+                title: finalTitle,
+
+                message:
+                    message ||
+                    'You have a new Lendr update.',
+
+                relatedBorrowing:
+                    finalBorrowing,
+
+                relatedItem:
+                    finalItem,
+
+                relatedDispute,
+
+                isRead: false
+            });
+
+        return notification;
 
     } catch (error) {
-
         console.error(
             'Failed to create notification:',
-            error.message
+            error
         );
 
+        /*
+         * Notification failures should not break the
+         * main borrowing/dispute/payment operation.
+         */
+        return null;
     }
 };
-
 
 module.exports = createNotification;

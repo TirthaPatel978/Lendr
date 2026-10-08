@@ -606,7 +606,6 @@ function Browse() {
                         {/* CATEGORY */}
 
                         <div className="filter-group">
-
                             <label htmlFor="category">
                                 Category
                             </label>
@@ -614,12 +613,8 @@ function Browse() {
                             <select
                                 id="category"
                                 value={category}
-                                onChange={(
-                                    event
-                                ) =>
-                                    setCategory(
-                                        event.target.value
-                                    )
+                                onChange={(event) =>
+                                    setCategory(event.target.value)
                                 }
                             >
                                 <option value="">
@@ -641,8 +636,23 @@ function Browse() {
                                 <option value="Everyday Tools">
                                     Everyday Tools
                                 </option>
-                            </select>
 
+                                <option value="Sports">
+                                    Sports
+                                </option>
+
+                                <option value="Recreational">
+                                    Recreational
+                                </option>
+
+                                <option value="Photography">
+                                    Photography
+                                </option>
+
+                                <option value="Other">
+                                    Other
+                                </option>
+                            </select>
                         </div>
 
 

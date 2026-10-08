@@ -275,14 +275,28 @@ const removeItem = async (req, res) => {
         /*
          * Notify the owner.
          */
-        await Notification.create({
-            recipient: item.owner,
-            type: 'ITEM_REMOVED',
-            title: 'Your equipment was removed',
+        await createNotification({
+            recipient:
+                item.owner,
+
+            sender:
+                req.user,
+
+            type:
+                'ITEM_REMOVED',
+
+            title:
+                'Equipment removed by Lendr',
+
             message:
-                `Your listing "${item.name}" was removed by an administrator. ` +
-                `Reason: ${item.removalReason}`,
-            relatedItem: item._id
+                `Your equipment "${item.name}" was removed by an administrator${
+                    reason
+                        ? `: ${reason}`
+                        : '.'
+                }`,
+
+            relatedItem:
+                item._id
         });
 
 

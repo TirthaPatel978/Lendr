@@ -1,3 +1,4 @@
+
 const User = require('../models/User');
 const Item = require('../models/Item');
 const Borrowing = require('../models/Borrowing');
@@ -12,28 +13,29 @@ const getCommunityStats = async (req, res) => {
             sharingDaysResult,
             popularCategories
         ] = await Promise.all([
-            // Total registered users
+            // Registered, non-suspended community members
             User.countDocuments({
-                role: 'USER'
+                role: 'USER',
+                isSuspended: false
             }),
 
-            // All items that have not been removed
+            // All listings that have not been removed
             Item.countDocuments({
                 moderationStatus: 'ACTIVE'
             }),
 
-            // Currently available active items
+            // Listings that are currently available
             Item.countDocuments({
                 moderationStatus: 'ACTIVE',
                 availability: true
             }),
 
-            // Completed borrowing transactions
+            // Successfully completed borrowings
             Borrowing.countDocuments({
                 status: 'COMPLETED'
             }),
 
-            // Total number of days items have been borrowed
+            // Total days across completed borrowing periods
             Borrowing.aggregate([
                 {
                     $match: {
@@ -67,7 +69,7 @@ const getCommunityStats = async (req, res) => {
                 }
             ]),
 
-            // Most popular item categories
+            // Most common categories among active listings
             Item.aggregate([
                 {
                     $match: {
@@ -84,7 +86,8 @@ const getCommunityStats = async (req, res) => {
                 },
                 {
                     $sort: {
-                        count: -1
+                        count: -1,
+                        _id: 1
                     }
                 },
                 {
@@ -105,7 +108,7 @@ const getCommunityStats = async (req, res) => {
                 ? sharingDaysResult[0].totalDays
                 : 0;
 
-        res.json({
+        return res.status(200).json({
             totalUsers,
             totalItems,
             activeItems,
@@ -113,11 +116,11 @@ const getCommunityStats = async (req, res) => {
             totalSharingDays,
             popularCategories
         });
-
     } catch (error) {
-        res.status(500).json({
-            message: 'Failed to fetch community statistics',
-            error: error.message
+        console.error('Community statistics error:', error);
+
+        return res.status(500).json({
+            message: 'Failed to fetch community statistics'
         });
     }
 };

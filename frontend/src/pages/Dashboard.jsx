@@ -585,6 +585,7 @@ function Dashboard() {
                         <div className="dashboard-notifications">
 
                             {notifications
+                                .filter((notification) => !notification.isRead)
                                 .slice(0, 4)
                                 .map(
                                     (

@@ -515,3 +515,147 @@
         width: 100%;
     }
 }
+
+/* ============================================
+   EDIT EQUIPMENT PHOTOS
+============================================ */
+
+.edit-photos-help {
+    margin: -12px 0 22px;
+    color: #78858c;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.edit-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.edit-photo-card {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border: 1px solid #dfe4e5;
+    border-radius: 12px;
+    background: #f2f4f3;
+}
+
+.edit-photo-card img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.edit-photo-label {
+    position: absolute;
+    bottom: 9px;
+    left: 9px;
+    max-width: calc(100% - 50px);
+    padding: 5px 8px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #435864;
+    font-size: 10px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.edit-photo-label.new {
+    background: #e6f1e9;
+    color: #426d51;
+}
+
+.edit-photo-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    background: #ffffff;
+    color: #9a4f4f;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(25, 45, 55, 0.12);
+}
+
+.edit-photo-remove:hover {
+    background: #fff0f0;
+}
+
+.edit-photos-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 130px;
+    border: 1px dashed #cbd5d9;
+    border-radius: 12px;
+    background: #fafbf9;
+    color: #81929a;
+}
+
+.edit-photos-empty p {
+    margin: 10px 0 0;
+    font-size: 13px;
+}
+
+.edit-photo-upload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 48px;
+    border: 1px dashed #9ab0bb;
+    border-radius: 9px;
+    background: #f7fafb;
+    color: #365c70;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.edit-photo-upload:hover {
+    border-color: #547d92;
+    background: #edf4f7;
+}
+
+.edit-photo-upload input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.edit-photo-upload:has(input:disabled) {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.edit-photo-count {
+    margin: 10px 0 0;
+    color: #89959c;
+    font-size: 11px;
+    text-align: right;
+}
+
+@media (max-width: 720px) {
+    .edit-photo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+}

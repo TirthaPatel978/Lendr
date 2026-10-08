@@ -1,0 +1,239 @@
+/* =========================================================
+   LENDR FOOTER
+========================================================= */
+
+.footer-inner {
+    width: min(1280px, 88%);
+    margin: 0 auto;
+}
+
+.footer-main {
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr 0.9fr 1.2fr;
+    gap: 48px;
+    padding: 58px 0 48px;
+}
+
+.footer-brand {
+    max-width: 300px;
+}
+
+.footer-logo {
+    display: inline-block;
+    color: #07152d;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    text-decoration: none;
+}
+
+.footer-logo span {
+    color: #1768ff;
+}
+
+.footer-description {
+    max-width: 270px;
+    margin-top: 15px;
+    color: #748194;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.footer-explore-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 20px;
+    color: #245b9b;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.footer-explore-link:hover {
+    color: #1768ff;
+}
+
+.footer-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 13px;
+}
+
+.footer-column h3 {
+    margin-bottom: 5px;
+    color: #142b3f;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.footer-column a {
+    color: #748194;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.footer-column a:hover {
+    color: #1768ff;
+}
+
+.footer-note {
+    align-self: start;
+    padding: 23px;
+    border: 1px solid #dfe7ed;
+    border-radius: 14px;
+    background:
+        radial-gradient(
+            ellipse at top right,
+            rgba(255, 255, 255, 0.9),
+            transparent 70%
+        ),
+        #e8eff5;
+}
+
+.footer-note-label {
+    color: #60809d;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+}
+
+.footer-note p {
+    margin-top: 12px;
+    color: #29465d;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 19px;
+    line-height: 1.5;
+}
+
+.footer-bottom {
+    min-height: 66px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-top: 1px solid #dfe5e9;
+    color: #8793a0;
+    font-size: 11px;
+}
+
+.footer-made-with {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.footer-made-with svg {
+    color: #638db8;
+}
+
+/* Tablet */
+
+@media (max-width: 950px) {
+    .footer-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 38px;
+    }
+
+    .footer-note {
+        max-width: 340px;
+    }
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+    .footer-inner {
+        width: 90%;
+    }
+
+    .footer-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 32px 22px;
+        padding: 42px 0 34px;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+        max-width: 340px;
+    }
+
+    .footer-note {
+        grid-column: 1 / -1;
+        max-width: none;
+        padding: 19px;
+    }
+
+    .footer-note p {
+        max-width: 320px;
+        font-size: 18px;
+    }
+
+    .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: center;
+        gap: 9px;
+        padding: 18px 0;
+    }
+}
+
+/* Footer background — deeper, solid blue */
+
+.site-footer {
+    background: #e9f3fc;
+    border-top: 1px solid #f7f7f7;
+    color: #1768ff ;
+}
+
+/* Match the original navbar logo */
+
+.footer-logo {
+    display: inline-block;
+    color: #07152d;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    text-decoration: none;
+}
+
+.footer-logo span {
+    color: #1768ff;
+}
+
+/* Remove the gradient/glow box */
+
+.footer-note {
+    align-self: start;
+    padding: 23px;
+    border: 1px solid #cbd9e5;
+    border-radius: 14px;
+    background: #d2e1ef;
+    box-shadow: none;
+}
+
+.footer-note-label {
+    color: #456987;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+}
+
+.footer-note p {
+    margin-top: 12px;
+    color: #13293d;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 19px;
+    line-height: 1.5;
+}
+
+/* Keep the bottom divider coordinated */
+
+.footer-bottom {
+    border-top: 1px solid #c5d5e2;
+}

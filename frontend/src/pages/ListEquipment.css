@@ -490,6 +490,39 @@
 }
 
 /* -----------------------------------------
+   Manual pickup coordinates
+   ----------------------------------------- */
+
+.listing-location-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 24px 0 18px;
+    color: #8a847b;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.listing-location-divider::before,
+.listing-location-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e1dcd4;
+}
+
+.listing-location-fields {
+    margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+    .listing-location-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* -----------------------------------------
    Error
    ----------------------------------------- */
 
